@@ -1,7 +1,7 @@
 import React, { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-
+import { useEffect } from 'react';
 import { setAccessToken } from '../../redux/slices/authSlice';
 import { trainerAuthService } from '../../services/trainerAuthService';
 import { loginValidate } from '../../validations/loginValidate';
@@ -29,7 +29,9 @@ const TrainerLogin: React.FC = () => {
   const navigate = useNavigate();
 
   const handleForgotPassword = () => navigate('/forgot-password');
-
+  useEffect(() => {
+    document.title = "FitConnect | Trainer Login";
+  }, []);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const newErrors = loginValidate({ email, password });
@@ -72,6 +74,7 @@ const TrainerLogin: React.FC = () => {
 
         <form className="space-y-4 text-left" onSubmit={handleSubmit}>
           <TextInput
+            label='Email'
             type="email"
             placeholder="Email"
             value={email}

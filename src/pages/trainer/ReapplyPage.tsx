@@ -35,6 +35,11 @@ const ReapplyPage = () => {
   const [certificateUrl, setCertificateUrl] = useState<string>("");
   const [errors, setErrors] = useState<Errors>({});
   const [toastMessage, setToastMessage] = useState("");
+
+useEffect(() => {
+  document.title = "FitConnect | Trainer Reapply";
+}, []);
+
   useEffect(() => {
     const fetchTrainerProfile = async () => {
       try {

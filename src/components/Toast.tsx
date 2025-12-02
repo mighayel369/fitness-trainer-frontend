@@ -15,7 +15,7 @@ const Toast:React.FC<ToastProps>=({message, type = "success", onClose})=>{
   }, [onClose])
    const bgColor = type === "success" ? "bg-green-500" : "bg-red-500"
     return (
-    <div className={`fixed top-5 right-5 z-50 px-4 py-2 text-white rounded shadow-lg transition-all ${bgColor}`}>
+    <div className={`fixed top-5 right-5 z-50 px-4 py-2 z-50 text-white rounded shadow-lg transition-all ${bgColor}`}>
       {message}
     </div>
   );

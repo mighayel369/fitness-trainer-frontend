@@ -29,5 +29,13 @@ export const trainerService = {
     });
     console.log(response)
     return response.data;
+  },
+  updateTrainerProfilePic:async(formData:FormData)=>{
+    const response = await axiosInstance.post('trainer/update-profilepic',formData,{
+      withCredentials:true,
+      headers:{'Content-Type':'multipart/form-data'}
+    })
+    console.log(response)
+    return response.data
   }
 }

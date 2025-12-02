@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useDispatch } from 'react-redux';
 import { setAccessToken } from '../../redux/slices/authSlice';
+
 const GoogleAuthSuccess: React.FC = () => {
   const navigate = useNavigate()
   const [status, setStatus] = useState<"loading" | "error">("loading")
@@ -19,6 +20,8 @@ const GoogleAuthSuccess: React.FC = () => {
   }, [navigate])
   if (status === "error") {
     return (
+      <>
+       
       <div className="h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white shadow-lg rounded-md p-6 text-center max-w-sm">
           <h2 className="text-xl font-semibold text-red-600 mb-2">Authentication Failed</h2>
@@ -33,13 +36,17 @@ const GoogleAuthSuccess: React.FC = () => {
           </button>
         </div>
       </div>
+      </>
     );
   }
   return (
+    <>
+
     <div className="h-screen flex flex-col items-center justify-center bg-gray-100">
       <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-24 w-24 mb-6 animate-spin"></div>
       <p className="text-gray-700 text-lg font-medium">Logging you in securely...</p>
     </div>
+    </>
   )
 }
 

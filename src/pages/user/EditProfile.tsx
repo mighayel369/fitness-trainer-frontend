@@ -29,7 +29,9 @@ const EditProfile: React.FC = () => {
     address: "",
   });
   const [errors, setErrors] = useState<Errors>({});
-
+  useEffect(() => {
+  document.title = "FitConnect | Edit Profile";
+}, []);
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -80,6 +82,8 @@ const EditProfile: React.FC = () => {
 
   return (
     <>
+ 
+
       <UserNavBar />
       <div className="flex justify-center p-6 bg-gray-50 mt-24">
         <div className="bg-white shadow-md rounded-xl p-8 w-full max-w-lg">

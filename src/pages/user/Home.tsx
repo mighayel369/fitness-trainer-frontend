@@ -2,9 +2,15 @@
 import UserNavBar from "../../layout/UserNavBar";
 import homeimage from "../../assets/homepage1.jpg";
 import React from "react";
+import { useEffect } from "react";
 
 const Home: React.FC = () => {
+    useEffect(() => {
+    document.title = "Fitconnect | Home"
+  }, []);
   return (
+    <>
+
     <div className="relative">
       <img
         src={homeimage}
@@ -26,6 +32,7 @@ const Home: React.FC = () => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 

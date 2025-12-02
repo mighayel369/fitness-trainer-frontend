@@ -19,7 +19,9 @@ const OTP: React.FC = () => {
   const role = useAppSelector((state) => state.otp.role);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-
+  useEffect(() => {
+  document.title = "FitConnect | OTP Verification";
+}, []);
   useEffect(() => {
     const startTime = localStorage.getItem('startTime');
     if (startTime) {
@@ -88,6 +90,8 @@ const OTP: React.FC = () => {
   };
 
   return (
+    <>
+
     <BackgroundImageWrapper image={otppic}>
       <div className="flex items-center justify-center w-full h-full">
         <div className="bg-white/50 backdrop-blur-md rounded-xl shadow-xl w-full max-w-md px-8 py-10 text-center">
@@ -122,6 +126,7 @@ const OTP: React.FC = () => {
         </div>
       </div>
     </BackgroundImageWrapper>
+    </>
   );
 };
 

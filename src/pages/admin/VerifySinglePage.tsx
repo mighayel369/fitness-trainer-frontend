@@ -50,7 +50,9 @@ const VerifySinglePage = () => {
   );
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"success" | "error">("success");
-
+useEffect(() => {
+  document.title = "FitConnect | Verify";
+}, []);
   useEffect(() => {
     const fetchTrainer = async () => {
       try {

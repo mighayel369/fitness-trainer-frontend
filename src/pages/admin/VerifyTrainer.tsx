@@ -26,7 +26,9 @@ const VerifyTrainer = () => {
   const [search, setSearch] = useState("");
 
   const navigate = useNavigate();
-
+  useEffect(() => {
+    document.title = "FitConnect | Verify Trainer";
+  }, []);
   const fetchTrainers = async () => {
     setLoading(true);
     try {

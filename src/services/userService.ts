@@ -52,5 +52,14 @@ verifyOtp:async(email:string|null,otpCode:string)=>{
   const response=await axiosInstance.post('/verify-otp', { email, otp: otpCode }, { withCredentials: true })
   console.log(response)
   return response.data
-}
+},
+
+  updateUserProfilePic:async(formData:FormData)=>{
+    const response = await axiosInstance.post('/update-userprofilepic',formData,{
+      withCredentials:true,
+      headers:{'Content-Type':'multipart/form-data'}
+    })
+    console.log(response)
+    return response.data
+  }
 };

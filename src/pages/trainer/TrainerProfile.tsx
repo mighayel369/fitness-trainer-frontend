@@ -9,6 +9,7 @@ import {
   FaStar,
   FaClock,
   FaMoneyBillWave,
+  FaCamera
 } from "react-icons/fa";
 import { MdWork } from "react-icons/md";
 import { trainerService } from "../../services/trainerService";
@@ -19,6 +20,9 @@ const DEFAULT_IMAGE =
 const TrainerProfile = () => {
   const navigate=useNavigate()
   const [trainer, setTrainer] = useState<any>(null);
+  useEffect(() => {
+  document.title = "FitConnect | Trainer Profile";
+}, []);
     const handleReapply = () => {
     navigate("/trainer/trainer-profile/re-apply");
   };
@@ -39,6 +43,25 @@ const TrainerProfile = () => {
     fetchTrainerProfile();
   }, []);
 
+  const handleProfilePicChange=async(e: React.ChangeEvent<HTMLInputElement>)=>{
+    const file=e.target.files?.[0]
+    if(!file) return
+
+    try{
+       const formData = new FormData();
+       formData.append("image", file);
+
+       const res=await trainerService.updateTrainerProfilePic(formData)
+      console.log(res)
+       setTrainer((prev:any)=>({
+        ...prev,
+        profilePic:res?.imageUrl
+       }))
+    }catch(err){
+      console.log(err)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <TrainerTopBar />
@@ -50,11 +73,30 @@ const TrainerProfile = () => {
         {trainer ? (
           <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-10 flex gap-10">
             <div className="flex flex-col items-center">
-              <img
-                src={trainer.image || DEFAULT_IMAGE}
-                alt="Trainer"
-                className="w-60 h-60 object-cover rounded-full shadow-lg"
-              />
+<div className="relative">
+  <img
+    src={trainer.profilePic || DEFAULT_IMAGE}
+    alt="Trainer"
+    className="w-60 h-60 object-cover rounded-full shadow-lg"
+  />
+
+
+  <label
+    htmlFor="profilePicUpload"
+    className="absolute bottom-2 right-4 bg-blue-600 p-2 rounded-full cursor-pointer shadow-lg hover:bg-blue-700 transition"
+  >
+    <FaCamera className="text-white text-lg" />
+  </label>
+
+
+  <input
+    type="file"
+    id="profilePicUpload"
+    accept="image/*"
+    className="hidden"
+    onChange={handleProfilePicChange}
+  />
+</div>
 
               <button
                 className="mt-6 px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl shadow hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"

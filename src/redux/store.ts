@@ -1,12 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from './slices/authSlice'
 import otpReducer from './slices/otpSlice'
-import errorReducer from './slices/errorSlice'
+
 export const store=configureStore({
     reducer:{
         auth:authReducer,
-        otp:otpReducer,
-        error:errorReducer
+        otp:otpReducer
     }
 })
 

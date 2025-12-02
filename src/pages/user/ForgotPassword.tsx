@@ -4,12 +4,16 @@ import backgroundImage from '../../assets/full-shot-man-holding-device.jpg';
 import TextInput from "../../components/TextInput";
 import SubmitButton from "../../components/SubmitButton";
 import LogoHeader from "../../components/LogoHeader";
-
+import { useEffect } from "react";
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+  document.title = "FitConnect | Forgot Password";
+}, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +36,9 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
+    <>
+
+
     <div className="w-full h-screen relative overflow-hidden p-6 bg-gray-100">
       <img src={backgroundImage} alt="Background" className="w-full h-full object-cover absolute inset-0 z-0" />
 
@@ -43,6 +50,7 @@ const ForgotPassword: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <TextInput
+            label="Email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -57,6 +65,7 @@ const ForgotPassword: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

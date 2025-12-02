@@ -1,5 +1,5 @@
 interface TextInputProps {
-  label: string;
+  label?: string;
   type?: string;
   placeholder: string;
   value: string;
@@ -9,7 +9,11 @@ interface TextInputProps {
 
 const TextInput: React.FC<TextInputProps> = ({label,type = "text",placeholder,value,onChange,error}) => (
   <div className="mb-4">
-    <label className="block text-gray-700 font-medium mb-1">{label}</label>
+    {label && (
+      <label className="block text-gray-700 font-medium mb-1">
+        {label}
+      </label>
+    )}
     <input
       type={type}
       placeholder={placeholder}

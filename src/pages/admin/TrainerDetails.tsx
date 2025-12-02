@@ -7,7 +7,9 @@ import { adminTrainerService } from "../../services/adminTrainerService";
 import Loading from "../../components/Loading";
 import NotFound from "../../components/NotFound";
 
-const DEFAULT_AVATAR = "https://www.w3schools.com/howto/img_avatar.png";
+
+const DEFAULT_IMAGE =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 type Trainer = {
   name: string;
@@ -21,12 +23,17 @@ type Trainer = {
   specialization: string[];
   createdAt: Date;
   certificate: string;
+  profilePic:string;
 };
 
 const TrainerDetails: React.FC = () => {
   const { id } = useParams();
   const [trainer, setTrainer] = useState<Trainer | null>(null);
   const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  document.title = "FitConnect | Trainer Details";
+}, []);
 
   useEffect(() => {
     const fetchTrainer = async () => {
@@ -57,10 +64,10 @@ const TrainerDetails: React.FC = () => {
           <NotFound message="Trainer not found." />
         ) : (
           <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
-            {/* Header */}
+        
             <div className="flex items-center gap-6 border-b pb-6">
               <img
-                src={DEFAULT_AVATAR}
+                src={trainer.profilePic ||  DEFAULT_IMAGE}
                 alt={`${trainer.name}'s avatar`}
                 className="w-24 h-24 rounded-full border object-cover"
               />

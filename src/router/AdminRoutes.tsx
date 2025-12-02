@@ -9,7 +9,9 @@ import TrainerDetails from '../pages/admin/TrainerDetails';
 import VerifyTrainer from '../pages/admin/VerifyTrainer';
 import AdminPublicRoute from '../components/AdminPublicRoute';
 import AdminPrivateRoute from '../components/AdminPrivateRoute';
-
+import ServiceList from '../pages/admin/ServiceList';
+import AddService from '../pages/admin/AddService';
+import EditService from '../pages/admin/EditService';
 const AdminRoutes = () => (
   <Routes>
     <Route path="login" element={<AdminPublicRoute><AdminLogin /></AdminPublicRoute>} />
@@ -20,6 +22,9 @@ const AdminRoutes = () => (
     <Route path="trainers/:id" element={<AdminPrivateRoute><TrainerDetails /></AdminPrivateRoute>} />
     <Route path="verify-trainer" element={<AdminPrivateRoute><VerifyTrainer /></AdminPrivateRoute>} />
     <Route path="verify-trainer/:id" element={<AdminPrivateRoute><VerifySinglePage /></AdminPrivateRoute>} />
+    <Route path="services" element={<AdminPrivateRoute><ServiceList /></AdminPrivateRoute>} />
+    <Route path="services/add" element={<AdminPrivateRoute><AddService /></AdminPrivateRoute>} />
+   <Route path="services/edit/:id" element={<AdminPrivateRoute><EditService /></AdminPrivateRoute>} />    
   </Routes>
 );
 

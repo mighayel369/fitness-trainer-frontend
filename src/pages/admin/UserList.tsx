@@ -34,7 +34,9 @@ const UserList: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const navigate = useNavigate();
-
+useEffect(() => {
+  document.title = "FitConnect | User List";
+}, []);
   const fetchUsers = async () => {
     try {
       setLoading(true);

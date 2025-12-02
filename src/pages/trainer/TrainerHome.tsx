@@ -1,8 +1,10 @@
 import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
-
+import { useEffect } from "react";
 const TrainerHome = () => {
-
+useEffect(() => {
+  document.title = "FitConnect | Trainer Home";
+}, []);
   return (
     <div className="min-h-screen bg-gray-50">
       <TrainerTopBar />

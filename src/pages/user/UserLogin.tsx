@@ -2,7 +2,7 @@ import loginpic from '../../assets/loginpic.jpg';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-
+import { useEffect } from 'react';
 import { loginValidate } from '../../validations/loginValidate';
 import { setAccessToken } from '../../redux/slices/authSlice';
 import { userService } from '../../services/userService';
@@ -27,6 +27,10 @@ const UserLogin: React.FC = () => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  useEffect(() => {
+  document.title = "FitConnect | User Login";
+}, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,6 +66,9 @@ const UserLogin: React.FC = () => {
   };
 
   return (
+    <>
+
+
     <BackgroundImageWrapper image={loginpic}>
       <div className="flex justify-start w-full h-full items-center p-4 md:p-12">
         <div className="bg-white bg-opacity-90 rounded-lg shadow-xl p-6 md:p-10 w-full max-w-md text-center">
@@ -104,6 +111,7 @@ const UserLogin: React.FC = () => {
         </div>
       </div>
     </BackgroundImageWrapper>
+    </>
   );
 };
 

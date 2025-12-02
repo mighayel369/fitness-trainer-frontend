@@ -36,7 +36,9 @@ const TrainerList = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const navigate = useNavigate();
-
+useEffect(() => {
+  document.title = "FitConnect | Trainer List";
+}, []);
   useEffect(() => {
     const fetchTrainers = async () => {
       try {

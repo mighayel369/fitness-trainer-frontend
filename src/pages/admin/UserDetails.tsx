@@ -17,13 +17,16 @@ type User = {
   age?: number;
 };
 
-const DEFAULT_AVATAR = "https://www.w3schools.com/howto/img_avatar.png";
+const DEFAULT_IMAGE =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const UserDetails: React.FC = () => {
   const { id } = useParams();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
+useEffect(() => {
+  document.title = "FitConnect | User Details";
+}, []);
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -51,10 +54,9 @@ const UserDetails: React.FC = () => {
           <NotFound message="User not found." />
         ) : (
           <div className="w-full max-w-2xl bg-white rounded-xl shadow-md p-6">
-            {/* Profile Header */}
             <div className="flex items-center gap-6 border-b pb-6">
               <img
-                src={DEFAULT_AVATAR}
+                src={DEFAULT_IMAGE}
                 alt={`${user.name}'s avatar`}
                 className="w-24 h-24 rounded-full border object-cover"
               />
@@ -76,7 +78,7 @@ const UserDetails: React.FC = () => {
               </div>
             </div>
 
-            {/* Info Section */}
+
             <div className="mt-6 space-y-4">
               <div className="flex justify-between text-gray-700">
                 <span className="flex items-center gap-2">
@@ -106,7 +108,6 @@ const UserDetails: React.FC = () => {
               </div>
             </div>
 
-            {/* Action */}
             <div className="mt-8 flex justify-end">
               <button
                 className={`px-5 py-2 rounded-md font-medium text-white shadow-sm transition ${

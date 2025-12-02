@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 
@@ -24,6 +24,10 @@ const AdminLogin: React.FC = () => {
   const [errors, setErrors] = useState<Errors>({});
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  useEffect(() => {
+  document.title = "FitConnect | Admin Login";
+}, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +60,7 @@ const AdminLogin: React.FC = () => {
         <h1 className="text-2xl md:text-3xl font-bold mb-4 text-gray-800">Admin Login</h1>
         <form onSubmit={handleSubmit} className="space-y-4 text-left">
           <TextInput
+          label="Email"
             type="email"
             placeholder="Admin Email"
             value={email}

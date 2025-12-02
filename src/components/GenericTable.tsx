@@ -1,5 +1,5 @@
 import React from "react";
-
+import Loading from "./Loading";
 type Column<T> = {
   header: string;
   accessor: keyof T | string; 
@@ -38,10 +38,7 @@ function GenericTable<T extends { _id: string }>({
         {loading ? (
           <tr>
             <td colSpan={columns.length + 1} className="text-center py-8">
-              <div className="flex justify-center items-center gap-2">
-                <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
-                <span className="text-gray-600 text-sm font-medium">Loading...</span>
-              </div>
+              <Loading message="Loading..."/>
             </td>
           </tr>
         ) : data.length > 0 ? (

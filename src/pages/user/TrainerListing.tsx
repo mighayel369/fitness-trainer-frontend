@@ -6,6 +6,7 @@ import { FaMapMarkerAlt, FaStar } from "react-icons/fa";
 import axiosInstance from "../../api/AxiosInstance";
 import { useNavigate } from "react-router-dom";
 
+
 const TrainerListing = () => {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
@@ -17,12 +18,16 @@ const TrainerListing = () => {
   const [trainers, setTrainers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const defaultImage =
-    "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+const DEFAULT_IMAGE =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
   const handleTrainerView = (trainer:any) => {
     navigate(`/trainer-details/${trainer._id}`);
   };
+
+      useEffect(() => {
+      document.title = "Fitconnect | Trainer Listing"
+    }, []);
 
   useEffect(() => {
     const fetchTrainers = async () => {
@@ -42,6 +47,7 @@ const TrainerListing = () => {
 
   return (
     <>
+
       <UserNavBar />
 
       <div className="pt-24 px-6 bg-gray-50 min-h-screen">
@@ -148,7 +154,7 @@ const TrainerListing = () => {
                     >
                       <div className="absolute -top-12">
                         <img
-                          src={trainer.certificate || defaultImage}
+                          src={trainer.profilePic || DEFAULT_IMAGE}
                           alt={trainer.name}
                           className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
                         />

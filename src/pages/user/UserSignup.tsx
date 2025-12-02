@@ -5,7 +5,7 @@ import { signupValidate } from '../../validations/signupValidate';
 import { userService } from '../../services/userService';
 import { setEmail,setRole } from '../../redux/slices/otpSlice';
 import { useAppDispatch } from '../../redux/hooks';
-
+import { useEffect } from 'react';
 import LogoHeader from '../../components/LogoHeader';
 import TextInput from '../../components/TextInput';
 import PasswordInput from '../../components/PasswordInput';
@@ -27,6 +27,10 @@ const UserSignup: React.FC = () => {
   const [confirm, setConfirm] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+  document.title = "FitConnect | User Signup";
+}, []);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -76,6 +80,9 @@ const UserSignup: React.FC = () => {
 
 
   return (
+    <>
+
+
 <BackgroundImageWrapper image={signuppic}>
   <div className="flex justify-end w-full h-full items-center">
     <div className="bg-white bg-opacity-90 rounded-lg shadow-xl p-6 md:p-10 w-full max-w-md text-center mr-8">
@@ -125,7 +132,7 @@ const UserSignup: React.FC = () => {
     </div>
   </div>
 </BackgroundImageWrapper>
-
+</>
   );
 };
 

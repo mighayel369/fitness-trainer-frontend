@@ -11,7 +11,10 @@ export const tokenService={
         return response.data
     },
     verifyTrainerAccessToken:async()=>{
-        const response=await axiosInstance.get('/trainer/verify-token',{withCredentials:true})
+        console.log('verifying')
+        const response=await axiosInstance.get('trainer/verify-token',{withCredentials:true})
+        console.log('verifying trainer token')
+        console.log(response.data)
         return response.data
     }
 }

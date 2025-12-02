@@ -1,11 +1,11 @@
-import React, { useState, type ChangeEvent, type FormEvent } from "react";
+import React, { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { trainerService } from "../../services/trainerService";
 import { userService } from "../../services/userService";
 import { signupValidate } from "../../validations/signupValidate";
 import { setEmail, setRole } from "../../redux/slices/otpSlice";
 import { useAppDispatch } from "../../redux/hooks";
-
+import { adminServiceManagement } from "../../services/adminServiceManagement";
 import TextInput from "../../components/TextInput";
 import PasswordInput from "../../components/PasswordInput";
 import SubmitButton from "../../components/SubmitButton";
@@ -13,22 +13,15 @@ import SelectField from "../../components/SelectField";
 import CheckboxGroup from "../../components/CheckboxGroup";
 import RadioGroup from "../../components/RadioGroup";
 import LogoHeader from "../../components/LogoHeader";
-
 import signuppic from "../../assets/trainer-signup pic.jpg";
 
+const languageOptions = import.meta.env.VITE_LANGUAGES?.split(",") || [];
+const experienceOptions = import.meta.env.VITE_EXPERIENCE?.split(",") || [];
 
-const specializationOptions = [
-  "Weight Training",
-  "Yoga",
-  "Zumba",
-  "Cardio",
-  "Nutrition",
-  "CrossFit",
-];
+console.log(languageOptions)
 
-const experienceOptions = ["0", "1", "2+", "5+", "10+"];
 
-const languageOptions = ["English","Malayalam"];
+
 
 interface Errors {
   email?: string;
@@ -50,6 +43,7 @@ const TrainerSignup: React.FC = () => {
   const [gender, setGender] = useState("");
   const [experience, setExperience] = useState("");
   const [specializations, setSpecializations] = useState<string[]>([]);
+  const [specializationOptions, setSpecializationOptions] = useState<string[]>([]); 
   const [languages, setLanguages] = useState<string[]>([]);
   const [certificate, setCertificate] = useState<File>();
   const [errors, setErrors] = useState<Errors>({});
@@ -57,6 +51,24 @@ const TrainerSignup: React.FC = () => {
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+useEffect(() => {
+  document.title = "FitConnect | Trainer Signup";
+}, []);
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await adminServiceManagement.fetchServices(1, "");
+        console.log(response)
+        if (response.services) {
+          const serviceNames = response.services.map((s: any) => s.name);
+          setSpecializationOptions(serviceNames);
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+    fetchServices();
+  }, []);
 
   const handleSpecializationChange = (option: string) => {
     setSpecializations((prev) =>
@@ -74,11 +86,13 @@ const TrainerSignup: React.FC = () => {
     );
   };
 
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setCertificate(e.target.files[0]);
     }
   };
+
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -109,11 +123,8 @@ const TrainerSignup: React.FC = () => {
     formData.append("gender", gender);
     formData.append("experience", experience);
 
-    specializations.forEach((spec) =>
-      formData.append("specializations[]", spec)
-    );
+    specializations.forEach((spec) => formData.append("specializations[]", spec));
     languages.forEach((lang) => formData.append("languages[]", lang));
-
     if (certificate) formData.append("certificate", certificate);
 
     try {
@@ -159,6 +170,7 @@ const TrainerSignup: React.FC = () => {
             <h2 className="font-semibold">Personal Details</h2>
 
             <TextInput
+              label="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Full Name"
@@ -166,6 +178,7 @@ const TrainerSignup: React.FC = () => {
             />
 
             <TextInput
+              label="Email"
               type="email"
               value={email}
               onChange={(e) => setEmailVal(e.target.value)}
@@ -181,6 +194,7 @@ const TrainerSignup: React.FC = () => {
               onChange={(e) => setGender(e.target.value)}
               error={errors.gender}
             />
+
 
             <PasswordInput
               value={password}
@@ -239,10 +253,7 @@ const TrainerSignup: React.FC = () => {
 
           <p className="mt-2 text-sm text-center">
             Already have an account?{" "}
-            <Link
-              to="/trainer/login"
-              className="text-blue-600 font-semibold"
-            >
+            <Link to="/trainer/login" className="text-blue-600 font-semibold">
               Login
             </Link>
           </p>

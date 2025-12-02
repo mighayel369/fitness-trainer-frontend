@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
-import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
-import { Calendar, Trash2, Pencil } from "lucide-react";
+import TrainerTopBar from "../../layout/TrainerTopBar";
+import { useState, useEffect } from "react";
+import { Clock, Edit, Trash2 } from "lucide-react";
 import axiosInstance from "../../api/AxiosInstance";
-
-const SLOT_DURATION = 60;
-
+import Toast from "../../components/Toast";
+import Loading from "../../components/Loading";
 const formatTo12Hour = (time: string) => {
   if (!time) return "";
   const [h, m] = time.split(":").map(Number);
@@ -14,159 +13,121 @@ const formatTo12Hour = (time: string) => {
   return `${hours}:${m.toString().padStart(2, "0")} ${suffix}`;
 };
 
-const generateUpcomingWeek = () => {
-  const today = new Date();
-  const days: { day: string; date: string; fullDate: string }[] = [];
-
-  let addedDays = 0;
-  let i = 0;
-
-  while (addedDays < 6) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const dayOfWeek = d.getDay();
-
-    if (dayOfWeek !== 0) {
-      const options: Intl.DateTimeFormatOptions = {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-      };
-
-      days.push({
-        day: d.toLocaleDateString("en-US", { weekday: "long" }),
-        date: d.toLocaleDateString("en-US", options),
-        fullDate: d.toISOString().split("T")[0],
-      });
-
-      addedDays++;
-    }
-    i++;
-  }
-  return days;
-};
+const SLOT_DURATION = 60;
 
 const TrainerAvailability = () => {
-  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [slots, setSlots] = useState<{ startTime: string; endTime: string }[]>([]);
+  const [showModel, setShowModel] = useState(false);
   const [startTime, setStartTime] = useState("");
-  const [slots, setSlots] = useState<any[]>([]);
-  const [weeklySlots, setWeeklySlots] = useState<any[]>([]);
-  const [editingSlot, setEditingSlot] = useState<any | null>(null);
-  const daysWithDates = generateUpcomingWeek();
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"success" | "error">("success");
+  const [weeklySlots, setWeeklySlots] = useState<
+    { date: string; slots: { startTime: string; endTime: string; status: string }[] }[]
+  >([]);
 
-useEffect(() => {
-  const fetchSlots = async () => {
-    try {
-      const res = await axiosInstance.get("/trainer/trainer-slot",{withCredentials:true});
-      if (res.data?.data) {
-        const backendSlots = res.data.data; 
-        setWeeklySlots(
-          daysWithDates.map((day) => ({
-            ...day,
-            slots: backendSlots
-              .filter((s: any) => s.date === day.fullDate)
-              .map((s: any) => ({
-                id: Date.now() + Math.random(),
-                startTime: s.startTime,
-                endTime: s.endTime,
-                status: s.status,
-              })),
-          }))
-        );
-      }
-    } catch (err) {
-      console.error("Error fetching slots:", err);
-    }
-  };
-  fetchSlots();
-}, []);
-
-  const addMinutes = (time: string, mins: number) => {
+  const endTimeFn = (time: string, min: number) => {
     const [h, m] = time.split(":").map(Number);
     const start = new Date();
     start.setHours(h, m);
-    start.setMinutes(start.getMinutes() + mins);
+    start.setMinutes(start.getMinutes() + min);
     return start.toTimeString().slice(0, 5);
   };
+useEffect(() => {
+  document.title = "FitConnect | Trainer Slots";
+}, []);
+  useEffect(() => {
+    const fetchTrainerSlots = async () => {
+      try {
+        const res = await axiosInstance.get("/trainer/trainer-slots", {
+          withCredentials: true,
+        });
 
-  const handleAddSlot = () => {
+        if (res.data.success) {
+          console.log(res.data.weeklySlots)
+          setSlots(res.data.weeklySlots[0]?.slots || []);
+          setWeeklySlots(res.data.weeklySlots);
+        } else {
+          setSlots([]);
+          setWeeklySlots([]);
+        }
+      } catch (err) {
+        console.error("Error fetching slots:", err);
+        setSlots([]);
+        setWeeklySlots([]);
+      }finally{
+        setLoading(false)
+      }
+    };
+
+    fetchTrainerSlots();
+  }, []);
+
+  const handleAddOrUpdateSlot = () => {
     if (!startTime) return;
-    if (slots.length >= 5) {
-      alert("You can only add up to 5 slots.");
+
+    const endTime = endTimeFn(startTime, SLOT_DURATION);
+    const newSlot = { startTime, endTime };
+
+    if (editIndex === null && slots.some((s) => s.startTime === newSlot.startTime)) {
+      setToastMessage("You already picked this slot.");
+      setToastType("error");
       return;
     }
 
-    const endTime = addMinutes(startTime, SLOT_DURATION);
-
-    if (editingSlot) {
-      const updated = slots.map((s) =>
-        s.id === editingSlot.id ? { ...s, startTime, endTime } : s
-      );
+    if (editIndex !== null) {
+      const updated = [...slots];
+      updated[editIndex] = newSlot;
       setSlots(updated);
-      setEditingSlot(null);
+      setEditIndex(null);
     } else {
-      const newSlot = { id: Date.now(), startTime, endTime };
+      if (slots.length >= 4) {
+        setToastMessage("You can only add up to 4 slots.");
+        setToastType("error");
+        return;
+      }
       setSlots([...slots, newSlot]);
     }
 
     setStartTime("");
   };
 
-  const handleDeleteSlot = (id: number) => {
-    setSlots(slots.filter((slot) => slot.id !== id));
+  const handleDelete = (index: number) => {
+    const updated = slots.filter((_, i) => i !== index);
+    setSlots(updated);
   };
 
-  const handleEditSlot = (slot: any) => {
-    setStartTime(slot.startTime);
-    setEditingSlot(slot);
+  const handleEdit = (index: number) => {
+    setStartTime(slots[index].startTime);
+    setEditIndex(index);
   };
 
-const handleSave = async () => {
-  if (slots.length < 3) {
-    alert("You must select at least 3 slots.");
-    return;
-  }
+  const handleSave = async () => {
+    try {
+      const response = await axiosInstance.post(
+        "/trainer/update",
+        { timeSlot: slots },
+        { withCredentials: true }
+      );
 
-  const payload = daysWithDates.flatMap((day) =>
-    slots.map((s) => ({
-      date: day.fullDate,
-      startTime: s.startTime,
-      endTime: s.endTime,
-    }))
-  );
+      if (response.status === 200) {
+        setToastMessage("Slots saved successfully!");
+        setToastType("success");
+        setShowModel(false);
+      } else {
+        setToastMessage("Something went wrong. Please try again.");
+        setToastType("error");
+      }
+    } catch (error) {
+      console.error(error);
+      setToastMessage("Error saving slots.");
+      setToastType("error");
+    }
+  };
 
-  try {
-    await axiosInstance.post(
-      "/trainer/save-trainerslot",
-      { slots: payload },
-      { withCredentials: true }
-    );
-
-    const expanded = daysWithDates.map((day) => ({
-      ...day,
-      slots: slots.map((s) => ({ ...s, status: "available" })),
-    }));
-    setWeeklySlots(expanded);
-    setShowModal(false);
-  } catch (err) {
-    console.error("Error saving slots:", err);
-  }
-};
-
-  const toggleSlotStatus = (fullDate: string, id: number) => {
-    const updated = weeklySlots.map((d) =>
-      d.fullDate === fullDate
-        ? {
-            ...d,
-            slots: d.slots.map((s: any) =>
-              s.id === id
-                ? { ...s, status: s.status === "available" ? "leave" : "available" }
-                : s
-            ),
-          }
-        : d
-    );
-    setWeeklySlots(updated);
+  const handleCancel = () => {
+    setShowModel(false);
   };
 
   return (
@@ -174,88 +135,120 @@ const handleSave = async () => {
       <TrainerTopBar />
       <TrainerSideBar />
 
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setToastMessage(null)}
+        />
+      )}
+
       <main className="ml-72 pt-24 px-10">
-        <h1 className="text-4xl font-bold mb-10 text-gray-800">
-          Trainer Availability Management
-        </h1>
+        <h1 className="text-4xl font-bold mb-10 text-gray-800">Slot Management</h1>
 
-        {slots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center bg-white shadow-lg rounded-2xl p-10 max-w-3xl mx-auto text-center">
-            <Calendar className="w-16 h-16 text-blue-600 mb-6" />
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Welcome to Availability Management
-            </h2>
-            <p className="text-gray-600 mb-6">
-              You haven’t set up your availability slots yet. Set at least 3 slots so clients know when to book sessions.
-            </p>
-
+        {loading?(<Loading message="Loading..."/>):weeklySlots.length === 0 ? (
+          <div className="bg-white shadow-xl rounded-2xl border border-gray-200 p-10 flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="p-4 bg-blue-100 rounded-full">
+                <Clock className="w-10 h-10 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-gray-800">
+                  Welcome, Trainer!
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  You haven’t set up your availability yet. Add your preferred
+                  time slots so clients can start booking you.
+                </p>
+              </div>
+            </div>
             <button
-              onClick={() => setShowModal(true)}
-              className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium shadow hover:bg-blue-700 transition"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium shadow-md transition"
+              onClick={() => setShowModel(true)}
             >
-              + Set Availability
+              Setup Time Slots
             </button>
           </div>
         ) : (
-          <div className="bg-white shadow rounded-2xl p-6 overflow-x-auto">
-            <h2 className="text-xl font-semibold mb-4">Trainer Weekly Slots</h2>
+<div className="bg-white shadow-xl rounded-2xl p-6 overflow-x-auto mt-10">
+  <h2 className="text-xl font-semibold mb-6 text-gray-800">
+    Trainer Weekly Slots
+  </h2>
+  <table className="w-full border-collapse rounded-xl overflow-hidden">
+    <thead>
+      <tr className="bg-gradient-to-r from-blue-50 to-blue-100">
+        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+          Time Slot
+        </th>
+        {weeklySlots.map((day) => (
+          <th
+            key={day.date}
+            className="px-6 py-3 text-center text-sm font-semibold text-gray-700"
+          >
+            {day.date}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {weeklySlots[0]?.slots.map((slot, idx) => (
+        <tr
+          key={idx}
+          className="hover:bg-gray-50 transition-colors duration-200"
+        >
+          <td className="px-6 py-3 font-medium text-gray-800 border-t">
+            {formatTo12Hour(slot.startTime)} - {formatTo12Hour(slot.endTime)}
+          </td>
+          {weeklySlots.map((day) => {
+            const slotData = day.slots.find(
+              (s) => s.startTime === slot.startTime
+            );
 
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="border px-4 py-2 bg-gray-100 text-left">Time Slot</th>
-                  {daysWithDates.map((day) => (
-                    <th
-                      key={day.fullDate}
-                      className="border px-4 py-2 bg-gray-100 text-center"
-                    >
-                      {day.date}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {slots.map((slot) => (
-                  <tr key={slot.id}>
-                    <td className="border px-4 py-2 font-medium">
-                      {formatTo12Hour(slot.startTime)} - {formatTo12Hour(slot.endTime)}
-                    </td>
-                    {daysWithDates.map((day) => {
-                      const dayData = weeklySlots.find((d: any) => d.fullDate === day.fullDate);
-                      const slotData = dayData?.slots.find((s: any) => s.id === slot.id);
+            let badgeClass = "";
+            if (slotData?.status === "available") {
+              badgeClass =
+                "bg-green-100 text-green-700 border border-green-300";
+            } else if (slotData?.status === "booked") {
+              badgeClass = "bg-red-100 text-red-700 border border-red-300";
+            } else if (slotData?.status === "leave") {
+              badgeClass =
+                "bg-yellow-100 text-yellow-700 border border-yellow-300";
+            } else {
+              badgeClass = "bg-gray-100 text-gray-500 border border-gray-300";
+            }
 
-                      return (
-                        <td
-                          key={day.fullDate + slot.id}
-                          onClick={() => toggleSlotStatus(day.fullDate, slot.id)}
-                          className={`border px-4 py-2 text-center cursor-pointer transition ${
-                            slotData?.status === "available"
-                              ? "bg-green-100 text-green-700 hover:bg-green-200"
-                              : "bg-red-100 text-red-700 hover:bg-red-200"
-                          }`}
-                        >
-                          {slotData?.status}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            return (
+              <td
+                key={day.date + slot.startTime}
+                className="px-6 py-3 text-center border-t"
+              >
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium inline-block ${badgeClass}`}
+                >
+                  {slotData?.status || "N/A"}
+                </span>
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
         )}
       </main>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-[600px] relative max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-              {editingSlot ? "Edit Slot" : "Set Your Availability (3–5 slots per day)"}
-            </h2>
+      {showModel && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white w-[600px] rounded-2xl shadow-xl p-8 relative max-h-[90vh] overflow-y-auto">
+            <p className="font-bold text-2xl">
+              Set Your Time Slots <span className="text-gray-500">(Max 4)</span>
+            </p>
 
-            <div className="space-y-4">
+            <div className="space-y-4 mt-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="text-gray-700 text-sm font-medium">
                   Start Time
                 </label>
                 <input
@@ -265,42 +258,41 @@ const handleSave = async () => {
                   className="w-full border rounded-lg px-3 py-2 mt-1"
                 />
               </div>
-
               <button
-                onClick={handleAddSlot}
-                disabled={!startTime || slots.length >= 5}
-                className="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                onClick={handleAddOrUpdateSlot}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
               >
-                {editingSlot ? "Update Slot" : "+ Add Slot (1hr each)"}
+                {editIndex !== null ? "Update Slot" : "Add Slot"}
               </button>
             </div>
 
             {slots.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-lg font-medium text-gray-800 mb-3">
-                  Selected Slots
+                  Chosen Slots
                 </h3>
                 <ul className="space-y-2">
-                  {slots.map((slot) => (
+                  {slots.map((slot, index) => (
                     <li
-                      key={slot.id}
-                      className="flex justify-between items-center border rounded-lg px-4 py-2 bg-gray-50"
+                      key={index}
+                      className="flex items-center justify-between bg-gray-100 px-4 py-2 rounded-lg"
                     >
-                      <span>
-                        {formatTo12Hour(slot.startTime)} - {formatTo12Hour(slot.endTime)}
+                      <span className="text-gray-800 font-medium">
+                        {formatTo12Hour(slot.startTime)} -{" "}
+                        {formatTo12Hour(slot.endTime)}
                       </span>
-                      <div className="flex gap-3">
+                      <div className="flex space-x-3">
                         <button
-                          onClick={() => handleEditSlot(slot)}
-                          className="text-blue-500 hover:text-blue-700"
+                          onClick={() => handleEdit(index)}
+                          className="text-blue-600 hover:text-blue-800"
                         >
-                          <Pencil size={18} />
+                          <Edit className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => handleDeleteSlot(slot.id)}
-                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDelete(index)}
+                          className="text-red-600 hover:text-red-800"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </li>
@@ -311,21 +303,16 @@ const handleSave = async () => {
 
             <div className="flex justify-end gap-4 mt-6">
               <button
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingSlot(null);
-                  setStartTime("");
-                }}
-                className="px-5 py-2 border border-gray-400 rounded-lg text-gray-700 hover:bg-gray-100"
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-md"
+                onClick={handleCancel}
               >
                 Cancel
               </button>
               <button
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow-md"
                 onClick={handleSave}
-                disabled={slots.length < 3}
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
               >
-                Save & Publish
+                Save Slots
               </button>
             </div>
           </div>

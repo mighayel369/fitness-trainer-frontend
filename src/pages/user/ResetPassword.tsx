@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { userService } from "../../services/userService";
 import bgpic from "../../assets/reload-reset-technology-update-digital.jpg";
-
+import { useEffect } from "react";
 import LogoHeader from "../../components/LogoHeader";
 import PasswordInput from "../../components/PasswordInput";
 import SubmitButton from "../../components/SubmitButton";
@@ -16,6 +16,10 @@ const ResetPassword: React.FC = () => {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+  document.title = "FitConnect | Reset Password";
+}, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,6 +47,9 @@ const ResetPassword: React.FC = () => {
   };
 
   return (
+    <>
+
+
     <BackgroundImageWrapper image={bgpic}>
       <div className="flex items-center justify-center w-full h-full z-10">
         <div className="bg-white/50 backdrop-blur-md rounded-2xl shadow-xl w-full max-w-md px-8 py-10">
@@ -73,6 +80,7 @@ const ResetPassword: React.FC = () => {
         </div>
       </div>
     </BackgroundImageWrapper>
+    </>
   );
 };
 

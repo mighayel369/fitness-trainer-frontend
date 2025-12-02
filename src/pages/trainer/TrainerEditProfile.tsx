@@ -53,7 +53,9 @@ const TrainerEditProfile = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
-
+useEffect(() => {
+  document.title = "FitConnect | Trainer Edit Profile";
+}, []);
   useEffect(() => {
     const fetchTrainerProfile = async () => {
       try {

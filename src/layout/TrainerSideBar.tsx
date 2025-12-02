@@ -22,6 +22,7 @@ const TrainerSideBar = () => {
   ];
 
 useEffect(() => {
+  console.log('token from sidebar',token)
   const verifyTrainer = async () => {
     if (!token) {
       navigate('/trainer/login');

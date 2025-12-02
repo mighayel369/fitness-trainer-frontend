@@ -1,5 +1,6 @@
 import UserNavBar from "../../layout/UserNavBar";
 import React, { useEffect, useState } from "react";
+
 import {
   FaEnvelope,
   FaPhone,
@@ -8,17 +9,24 @@ import {
   FaCalendarAlt,
   FaWallet,
   FaHistory,
-  FaCog
+  FaCog,
+  FaCamera
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../api/AxiosInstance";
+import { userService } from "../../services/userService";
 
-const defaultImage = "https://cdn-icons-png.flaticon.com/512/847/847969.png";
+const DEFAULT_IMAGE =
+  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const UserProfile: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("schedule");
+
+  useEffect(() => {
+  document.title = "FitConnect | User Profile";
+}, []);
 
   useEffect(() => {
     const getUserData = async () => {
@@ -40,18 +48,59 @@ const UserProfile: React.FC = () => {
     navigate("/profile/edit");
   };
 
+   const handleProfilePicChange=async(e: React.ChangeEvent<HTMLInputElement>)=>{
+     const file=e.target.files?.[0]
+     if(!file) return
+ 
+     try{
+        const formData = new FormData();
+        formData.append("image", file);
+ 
+        const res=await userService.updateUserProfilePic(formData)
+       console.log(res)
+        setUser((prev:any)=>({
+         ...prev,
+         profilePic:res?.imageUrl
+        }))
+     }catch(err){
+       console.log(err)
+     }
+   }
+
   return (
     <>
+
+
+
       <UserNavBar />
 
       <div className="pt-28 pb-10">
         <div className="max-w-4xl mx-auto p-8 bg-white rounded-lg border border-black shadow-none">
           <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
-            <img
-              src={defaultImage}
-              alt="Profile"
-              className="w-28 h-28 rounded-full border-2 border-gray-300"
-            />
+<div className="relative">
+  <img
+    src={user?.profilePic || DEFAULT_IMAGE}
+    alt="Trainer"
+    className="w-60 h-60 object-cover rounded-full shadow-lg"
+  />
+
+
+  <label
+    htmlFor="profilePicUpload"
+    className="absolute bottom-2 right-4 bg-blue-600 p-2 rounded-full cursor-pointer shadow-lg hover:bg-blue-700 transition"
+  >
+    <FaCamera className="text-white text-lg" />
+  </label>
+
+
+  <input
+    type="file"
+    id="profilePicUpload"
+    accept="image/*"
+    className="hidden"
+    onChange={handleProfilePicChange}
+  />
+</div>
 
             <div className="flex-1 space-y-3">
               <h2 className="text-3xl font-bold">
