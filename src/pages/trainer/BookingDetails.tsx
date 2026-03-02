@@ -1,0 +1,218 @@
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Calendar, Clock, IndianRupee, ArrowLeft, MessageSquare, CheckCircle, XCircle } from "lucide-react";
+import TrainerTopBar from "../../layout/TrainerTopBar";
+import TrainerSideBar from "../../layout/TrainerSideBar";
+import { trainerBookingervice } from "../../services/trainer/trainer.Booking.service";
+import { type TrainerBookingDetails } from "../../types/bookingType";
+import Loading from "../../components/Loading";
+import Modal from "../../components/Modal";
+import Toast from "../../components/Toast";
+const BOOKING_ACTION = {
+    booking: {
+        accept: (id: string) => trainerBookingervice.acceptPendingBooking(id),
+       reject: (id: string, reason?: string) => trainerBookingervice.rejectPendingBooking(id, reason),    },
+    reschedule: {
+        accept: (id: string) => trainerBookingervice.handleRescheduleRequest(id, "approve"),
+        reject: (id: string) => trainerBookingervice.handleRescheduleRequest(id, "reject"),
+    },
+};
+
+const BookingDetails = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const [booking, setBooking] = useState<TrainerBookingDetails|null>(null);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+    useEffect(() => {
+        document.title = "FitTribe | Booking Details";
+        fetchBookingDetails();
+    }, [id]);
+    const [pendingAction, setPendingAction] = useState<{
+        type: 'accept' | 'reject';
+        context: 'booking' | 'reschedule';
+    } | null>(null);
+
+    const triggerAction = (type: 'accept' | 'reject', context: 'booking' | 'reschedule') => {
+        setPendingAction({ type, context });
+        setShowModal(true);
+    };
+
+
+const handleConfirmAction = async (reason?: string) => {
+    if (!pendingAction || !id) return;
+
+    try {
+        setLoading(true);
+        const serviceFn = BOOKING_ACTION[pendingAction.context][pendingAction.type];
+ 
+        const res = await serviceFn(id, reason);
+
+        if (res.success) {
+            await fetchBookingDetails();
+            setToast({ message: res.message, type: "success" });
+        }
+    } catch (err: any) {
+        console.error("Action failed", err);
+        setToast({ message: "Action failed. Please try again.", type: "error" });
+    } finally {
+        setShowModal(false);
+        setPendingAction(null);
+        setLoading(false);
+    }
+};
+
+    const fetchBookingDetails = async () => {
+        if (!id) return;
+        try {
+            const res = await trainerBookingervice.fetchBookingDetails(id);
+            if (res.success) setBooking(res.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) return <Loading message="Loading booking details..." />;
+    if (!booking) return <div className="ml-72 pt-24 text-center">Booking not found.</div>;
+
+    return (
+        <div className="min-h-screen bg-[#F8FAFC]">
+            <TrainerTopBar />
+            <TrainerSideBar />
+
+            <main className="ml-72 pt-24 px-10 pb-12">
+                        {toast && (
+                        <Toast
+                          message={toast.message}
+                          type={toast.type}
+                          onClose={() => setToast(null)}
+                        />
+                      )}
+                <div className="flex items-center gap-4 mb-8">
+                    <button onClick={() => navigate(-1)} className="p-2 hover:bg-white rounded-xl transition-all shadow-sm">
+                        <ArrowLeft size={20} className="text-gray-600" />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900">Session Details</h1>
+                        <p className="text-sm text-gray-500">ID: #{booking.bookingId.toUpperCase()}</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-8">
+                    <div className="col-span-2 space-y-6">
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Client Profile</h2>
+                            <div className="flex items-center gap-4">
+                                <div className="h-16 w-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 font-bold text-xl">
+                                    {booking.clientProfilePic ? <img src={booking.clientProfilePic} className="rounded-2xl" /> : booking.clientName.charAt(0)}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900">{booking.clientName}</h3>
+                                    <p className="text-gray-500 text-sm">{booking.clientEmail}</p>
+                                    <p className="text-gray-500 text-sm">{booking.clientPhone || "No phone provided"}</p>
+                                </div>
+                                <button className="ml-auto flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-all">
+                                    <MessageSquare size={16} /> Chat
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Service Information</h2>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="flex items-start gap-3">
+                                    <Calendar className="text-indigo-500 mt-1" size={20} />
+                                    <div>
+                                        <p className="text-xs font-medium text-gray-400 uppercase">Scheduled Date</p>
+                                        <p className="font-bold text-gray-800">{new Date(booking.bookedDate).toLocaleDateString('en-US', { dateStyle: 'full' })}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3">
+                                    <Clock className="text-indigo-500 mt-1" size={20} />
+                                    <div>
+                                        <p className="text-xs font-medium text-gray-400 uppercase">Time Slot</p>
+                                        <p className="font-bold text-gray-800">{booking.bookedTime} ({booking.sessionDuration} mins)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="col-span-1 space-y-6">
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Booking Status</h2>
+                            <div className={`inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4 ${booking.bookingStatus === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                                }`}>
+                                {booking.bookingStatus}
+                            </div>
+                            {booking.bookingStatus === 'rejected' && booking.rejectReason && (
+                                <div className="mt-2 p-3 bg-red-50 rounded-2xl border border-red-100">
+                                    <p className="text-[10px] font-bold text-red-400 uppercase mb-1">Reason for Rejection</p>
+                                    <p className="text-sm text-red-700 italic">"{booking.rejectReason}"</p>
+                                </div>
+                            )}
+
+                            <hr className="my-4 border-gray-50" />
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-500">Your Earnings</span>
+                                <span className="text-2xl font-black text-gray-900 flex items-center">
+                                    <IndianRupee size={20} /> {booking.trainerEarning}
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-2">Payment Status: <span className="uppercase font-bold">{booking.paymentStatus}</span></p>
+                        </div>
+
+                        {booking.bookingStatus === "reschedule_requested" && (
+                            <div className="bg-indigo-600 p-6 rounded-3xl shadow-lg shadow-indigo-100 text-white">
+                                <h2 className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Pending Reschedule</h2>
+                                <p className="text-sm font-medium mb-4">Client has requested to change this session to:</p>
+                                <div className="bg-indigo-500 bg-opacity-40 p-3 rounded-2xl mb-4">
+                                    <p className="text-sm font-bold">{new Date(booking.bookedDate).toDateString()}</p>
+                                    <p className="text-xs">{booking.bookedTime}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button className="flex-1 py-2 bg-white text-indigo-600 rounded-xl font-bold text-xs uppercase" onClick={()=>triggerAction("accept","reschedule")}>Accept</button>
+                                    <button className="flex-1 py-2 bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase" onClick={()=>triggerAction("reject","reschedule")}>Decline</button>
+                                </div>
+                            </div>
+                        )}
+                        {booking.bookingStatus === "pending" && (
+                            <div className="bg-white border-2 border-indigo-500 p-6 rounded-3xl shadow-xl animate-in slide-in-from-bottom-4">
+                                <h2 className="text-indigo-600 text-xs font-black uppercase tracking-widest mb-2">New Request</h2>
+                                <p className="text-gray-600 text-sm mb-6">Will you accept this session for the requested slot?</p>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => triggerAction('accept', 'booking')}
+                                        className="flex-1 py-3 bg-indigo-600 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all"
+                                    >
+                                        <CheckCircle size={18} /> Accept
+                                    </button>
+                                    <button
+                                        onClick={() => triggerAction('reject', 'booking')}
+                                        className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-200 transition-all"
+                                    >
+                                        <XCircle size={18} /> Decline
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <Modal
+                    isVisible={showModal}
+                    onCancel={() => setShowModal(false)}
+                    onConfirm={handleConfirmAction}
+                    title="Confirm Action"
+                    message={`Confirming will ${pendingAction?.type} this ${pendingAction?.context} request.`}
+                    showReasonInput={pendingAction?.type === "reject"}
+                />
+            </main>
+        </div>
+    );
+};
+
+export default BookingDetails;

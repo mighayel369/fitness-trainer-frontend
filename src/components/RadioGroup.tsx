@@ -13,7 +13,7 @@ const RadioGroup: React.FC<RadioGroupProps> = ({ label, name, options, value, on
     <div className="flex gap-4">
       {options.map((opt) => (
         <label key={opt}>
-          <input type="radio" name={name} value={opt} checked={value === opt} onChange={onChange} /> {opt}
+          <input type="radio" name={name} value={opt} checked={value === opt} onChange={onChange}/> {opt}
         </label>
       ))}
     </div>

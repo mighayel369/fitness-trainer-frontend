@@ -1,24 +1,42 @@
+interface CheckboxOption {
+  label: string;
+  value: string;
+}
+
 interface CheckboxGroupProps {
   label: string;
-  options: string[];
+  options: CheckboxOption[];
   selected: string[];
-  onChange: (option: string) => void;
+  onChange: (value: string) => void;
   error?: string;
 }
 
-const CheckboxGroup: React.FC<CheckboxGroupProps> = ({label, options, selected, onChange, error }) => (
+const CheckboxGroup: React.FC<CheckboxGroupProps> = ({
+  label,
+  options,
+  selected,
+  onChange,
+  error
+}) => (
   <div>
     <label className="block font-medium mb-1">{label}</label>
+
     <div className="grid grid-cols-2 gap-2">
       {options.map((opt) => (
-        <label key={opt} className="flex items-center gap-2">
-          <input type="checkbox" value={opt} checked={selected.includes(opt)} onChange={() => onChange(opt)} />
-          {opt}
+        <label key={opt.value} className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            value={opt.value}
+            checked={selected.includes(opt.value)}
+            onChange={() => onChange(opt.value)}
+          />
+          {opt.label}
         </label>
       ))}
     </div>
+
     {error && <p className="text-red-600 text-sm">{error}</p>}
   </div>
 );
 
-export default CheckboxGroup;
+export default CheckboxGroup

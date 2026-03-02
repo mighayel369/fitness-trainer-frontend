@@ -1,18 +1,19 @@
-import React, { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+
+import React, { useState, useEffect, type FormEvent } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { useEffect } from 'react';
+
+import loginpic from '../../assets/trainer-loginpic.webp';
+import LogoHeader from '../../assets/logo.jpg';
 import { setAccessToken } from '../../redux/slices/authSlice';
-import { trainerAuthService } from '../../services/trainerAuthService';
+import { trainerAuthService } from '../../services/trainer/trainer.Auth.service';
 import { loginValidate } from '../../validations/loginValidate';
 
-import BackgroundImageWrapper from '../../components/BackgroundImage';
-import LogoHeader from '../../components/LogoHeader';
+import Toast from "../../components/Toast";
 import TextInput from '../../components/TextInput';
 import PasswordInput from '../../components/PasswordInput';
 import SubmitButton from '../../components/SubmitButton';
-
-import loginpic from '../../assets/trainer-loginpic.jpg';
+import BackgroundImageWrapper from '../../components/BackgroundImage';
 
 interface Errors {
   email?: string;
@@ -24,16 +25,26 @@ const TrainerLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
+  const [generalError, setGeneralError] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleForgotPassword = () => navigate('/forgot-password');
   useEffect(() => {
-    document.title = "FitConnect | Trainer Login";
-  }, []);
+    document.title = "FitTribe | Trainer Portal";
+    if (location.state?.message) {
+      setToastMessage(location.state.message);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
+    setGeneralError('');
+    
     const newErrors = loginValidate({ email, password });
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -43,24 +54,13 @@ const TrainerLogin: React.FC = () => {
     setLoading(true);
     try {
       const result = await trainerAuthService.loginTrainer(email, password);
-  if (result.success) {
-    dispatch(setAccessToken(result.accessToken));
-
-    if (result.status === 'accepted') {
-      navigate('/trainer'); 
-    } else {
-      navigate('/trainer/trainer-profile'); 
-    }
-  }
+      if (result.success) {
+        dispatch(setAccessToken(result.accessToken));
+        navigate('/trainer', { replace: true }); 
+      }
     } catch (err: any) {
-      const errorMsg = err.response?.data?.message;
-      const msgMap: Record<string, string> = {
-        'Trainer Not Found': 'Trainer not found',
-        'Password is incorrect': 'Incorrect password',
-        'Trainer Is Blocked': 'Your account is blocked',
-        'Trainer Is Not Verified': 'Trainer is not verified',
-      };
-      setErrors({ password: msgMap[errorMsg] || 'Incorrect data' });
+      const errorMsg = err.response?.data?.message || "Invalid trainer credentials.";
+      setGeneralError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -68,42 +68,74 @@ const TrainerLogin: React.FC = () => {
 
   return (
     <BackgroundImageWrapper image={loginpic}>
-      <div className="bg-white/70 bg-opacity-90 rounded-lg shadow-xl p-6 md:p-10 w-full max-w-md text-center">
-        <LogoHeader />
-        <h1 className="text-3xl font-bold mb-4 text-gray-800">Trainer Login</h1>
-
-        <form className="space-y-4 text-left" onSubmit={handleSubmit}>
-          <TextInput
-            label='Email'
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={errors.email}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50">
+          <Toast 
+            message={toastMessage} 
+            type="success" 
+            onClose={() => setToastMessage(null)} 
           />
-          <PasswordInput
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            error={errors.password}
-            showButton={false}
-          />
-          <SubmitButton loading={loading} text="Login" />
-        </form>
+        </div>
+      )}
 
-        <p
-          onClick={handleForgotPassword}
-          className="text-sm font-medium text-right mt-2 cursor-pointer text-blue-600 hover:underline"
-        >
-          Forgot Password?
-        </p>
+      <div className="flex justify-center md:justify-start w-full h-screen items-center p-4 md:pl-24">
+        <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-12 w-full max-w-[440px] border border-white/40">
+          
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1.5 bg-red-600 rounded-b-full opacity-20"></div>
 
-        <p className="mt-2 text-sm text-center">
-          Create an account?{' '}
-          <Link to="/trainer/signup" className="text-blue-600 font-semibold">
-            Sign up
-          </Link>
-        </p>
+          <header className="mb-10 text-center flex flex-col items-center">
+            <div className="mb-4 w-16 h-16 rounded-2xl overflow-hidden shadow-md border border-gray-100 bg-white">
+              <img 
+                src={LogoHeader} 
+                alt="FitTribe Logo" 
+                className="w-full h-full object-cover" 
+              />
+            </div>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">
+              TRAINER <span className="text-red-600">LOGIN</span>
+            </h1>
+            <p className="text-gray-500 mt-2 font-medium">Access your professional dashboard</p>
+          </header>
+
+          {generalError && (
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg mb-6 text-xs font-bold uppercase tracking-tight flex items-center shadow-sm">
+              {generalError}
+            </div>
+          )}
+
+          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+            <TextInput
+              name='email'
+              label="Professional Email"
+              type="email"
+              placeholder="trainer@fittribe.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
+
+            />
+
+            <div className="space-y-2">
+              <PasswordInput
+                label="Secure Password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                showButton={true}
+                error={errors.password}
+            
+              />
+            </div>
+
+            <SubmitButton loading={loading} text="Sign In to Portal" />
+          </form>
+          <footer className="mt-10 text-center text-sm text-gray-500">
+            Don't have a professional account?{' '}
+            <Link to="/trainer/signup" className="text-black font-black hover:underline underline-offset-4 decoration-red-600 uppercase text-xs">
+              Apply Now
+            </Link>
+          </footer>
+        </div>
       </div>
     </BackgroundImageWrapper>
   );

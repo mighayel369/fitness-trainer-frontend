@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 interface FieldConfig {
   name: string;
   label: string;
-  type: "text" | "textarea" | "email" | "password" | "number" | "date";
+  type: "text" | "textarea" | "email" | "password" | "number" | "date"|"file";
   placeholder?: string;
   required?: boolean;
   rows?: number; 
@@ -24,15 +24,18 @@ const GenericForm: React.FC<GenericFormProps> = ({
 }) => {
   const [formValues, setFormValues] = useState<Record<string, any>>({});
 
-  useEffect(() => {
-    const defaults: Record<string, any> = {};
-    fields.forEach((f) => {
-      defaults[f.name] = initialValues[f.name] || "";
-    });
-    setFormValues(defaults);
-  }, []);
+useEffect(() => {
+  const defaults: Record<string, any> = {};
+  fields.forEach((f) => {
+    defaults[f.name] =
+      f.type === "file"
+        ? null
+        : initialValues[f.name] ?? "";
+  });
+  setFormValues(defaults);
+}, []);
 
-  const handleChange = (name: string, value: string) => {
+  const handleChange = (name: string, value: any) => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -58,7 +61,18 @@ const GenericForm: React.FC<GenericFormProps> = ({
               required={field.required}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
-          ) : (
+          ) :field.type === "file" ? (
+          <input
+            type="file"
+            name={field.name}
+            accept="image/*"
+            required={field.required}
+            onChange={(e) =>
+              handleChange(field.name, e.target.files?.[0])
+            }
+            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2"
+          />
+        ): (
             <input
               type={field.type}
               name={field.name}

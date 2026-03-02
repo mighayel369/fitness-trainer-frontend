@@ -8,6 +8,8 @@ import TrainerProfile from '../pages/trainer/TrainerProfile';
 import ReapplyPage from '../pages/trainer/ReapplyPage';
 import TrainerEditProfile from '../pages/trainer/TrainerEditProfile';
 import TrainerAvailability from '../pages/trainer/TrainerAvailability';
+import TrainerBookings from '../pages/trainer/TrainerBookings';
+import BookingDetails from '../pages/trainer/BookingDetails';
 const TrainerRoutes = () => (
   <Routes>
     <Route path="login" element={<TrainerPublicRoute><TrainerLogin /></TrainerPublicRoute>} />
@@ -17,6 +19,8 @@ const TrainerRoutes = () => (
     <Route path="/trainer-profile/re-apply" element={<TrainerPrivateRoute><ReapplyPage /></TrainerPrivateRoute>} />
     <Route path="/trainer-profile/edit-profile" element={<TrainerPrivateRoute><TrainerEditProfile /></TrainerPrivateRoute>} />
     <Route path="/availability" element={<TrainerPrivateRoute><TrainerAvailability /></TrainerPrivateRoute>} />
+    <Route path="/bookings" element={<TrainerPrivateRoute><TrainerBookings /></TrainerPrivateRoute>} />
+    <Route path="/bookings/:id" element={<TrainerPrivateRoute><BookingDetails /></TrainerPrivateRoute>} />
   </Routes>
 );
 

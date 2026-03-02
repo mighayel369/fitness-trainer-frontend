@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
 import TextInput from "../../components/TextInput";
@@ -7,282 +8,233 @@ import SelectField from "../../components/SelectField";
 import CheckboxGroup from "../../components/CheckboxGroup";
 import RadioGroup from "../../components/RadioGroup";
 import Toast from "../../components/Toast";
-import { trainerService } from "../../services/trainerService";
-import { useNavigate } from "react-router-dom";
-import { trainerValidation } from "../../validations/trainerValidation";
-
-interface Errors {
-  name?: string;
-  gender?: string;
-  experience?: string;
-  specializations?: string;
-  languages?: string;
-  bio?: string;
-  phone?: string;
-  address?: string;
-  pricing?: string;
-  certificate?: string;
-}
-
-const specializationOptions = [
-  "Weight Training",
-  "Yoga",
-  "Zumba",
-  "Cardio",
-  "Nutrition",
-  "CrossFit",
-];
-
-const experienceOptions = ["0", "1", "2+", "5+", "10+"];
-
-const languageOptions = ["English", "Malayalam"];
+import { trainerProfileValidation,type ValidationErrors } from "../../validations/trainerProfileValidation";
+import { trainerProfileService } from "../../services/trainer/trainer.Profile.service";
+import { PublicService } from "../../services/public/public.service";
+import { type UpdateTrainerProfileDTO } from "../../types/trainerType";
 
 const TrainerEditProfile = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [gender, setGender] = useState("");
-  const [experience, setExperience] = useState("");
-  const [specialization, setSpecialization] = useState<string[]>([]);
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [certificate, setCertificate] = useState<File | null>(null);
-  const [certificateUrl, setCertificateUrl] = useState<string>("");
-  const [bio, setBio] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [pricing, setPricing] = useState<number>(0);
-  const [toastMessage, setToastMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Errors>({});
-useEffect(() => {
-  document.title = "FitConnect | Trainer Edit Profile";
-}, []);
-  useEffect(() => {
-    const fetchTrainerProfile = async () => {
-      try {
-        const res = await trainerService.getTrainerDetails();
-        const t = res?.trainer;
 
-        setName(t?.name || "");
-        setExperience(t?.experience || "");
-        setGender(t?.gender || "");
-        setSpecialization(t?.specialization || []);
-        setLanguages(t?.languages || []);
-        setCertificateUrl(t?.certificate || "");
-        setBio(t?.bio || "");
-        setPhone(t?.phone || "");
-        setAddress(t?.address || "");
-        setPricing(t?.pricing || 0);
+  const [formData, setFormData] = useState<UpdateTrainerProfileDTO>({
+    name: '',
+    gender: "",
+    experience: 0,
+    languages: [],
+    bio: "",
+    phone: "",
+    address: "",
+    pricePerSession: 0,
+    services: [], 
+  });
+
+  const [specializationOptions, setSpecializationOptions] = useState<{serviceId: string, name: string}[]>([]);
+   const [errors, setErrors] = useState<ValidationErrors<UpdateTrainerProfileDTO>>({});
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
+
+  useEffect(() => {
+    const initData = async () => {
+      try {
+        const [servicesRes, profileRes] = await Promise.all([
+          PublicService.fetchPublicServices(),
+          trainerProfileService.getTrainerDetails()
+        ]);
+        console.log(servicesRes,profileRes)
+        setSpecializationOptions(servicesRes.data);
+        
+        const t = profileRes.trainer;
+        setFormData({
+          ...t,
+          services: t.services?.map((s: any) => s.serviceId || s.id || s) || [],
+          experience: Number(t.experience) || 0,
+          pricePerSession: Number(t.pricePerSession) || 0
+        });
       } catch (err) {
-        console.error(err);
+        console.error("Error initializing data:", err);
+      } finally {
+        setLoading(false);
       }
     };
-
-    fetchTrainerProfile();
+    initData();
   }, []);
 
-  const handleSpecializationChange = (option: string) => {
-    setSpecialization((prev) =>
-      prev.includes(option)
-        ? prev.filter((s) => s !== option)
-        : [...prev, option]
-    );
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === "pricePerSession" || name === "experience" ? Number(value) : value
+    }));
   };
 
-  const handleLanguageChange = (option: string) => {
-    setLanguages((prev) =>
-      prev.includes(option)
-        ? prev.filter((l) => l !== option)
-        : [...prev, option]
-    );
+  const handleCheckboxChange = (field: "services" | "languages", value: string) => {
+    setFormData(prev => {
+      const current = (prev[field] as string[]) || [];
+      const updated = current.includes(value) 
+        ? current.filter(item => item !== value) 
+        : [...current, value];
+      return { ...prev, [field]: updated };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors = trainerValidation({
-      name,
-      gender,
-      experience,
-      certificate: certificate ?? undefined,
-      specializations: specialization,
-      languages,
-      bio,
-      phone,
-      address,
-      pricing,
-    });
+    setActionLoading(true);
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const validationErrors = trainerProfileValidation(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setActionLoading(false);
       return;
     }
 
     try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("gender", gender);
-      formData.append("experience", experience);
-      formData.append("bio", bio);
-      formData.append("phone", phone);
-      formData.append("address", address);
-      formData.append("pricing", pricing.toString());
+      const data = new FormData();
+      
+      (Object.keys(formData) as Array<keyof UpdateTrainerProfileDTO>).forEach((key) => {
+        const value = formData[key];
+        
+        if (value === undefined || value === null) return;
 
-      specialization.forEach((s, idx) => {
-        formData.append(`specialization[${idx}]`, s);
-      });
-      languages.forEach((l, idx) => {
-        formData.append(`languages[${idx}]`, l);
+        if (Array.isArray(value)) {
+          value.forEach(val => data.append(`${key}[]`, val));
+        } else {
+          data.append(key, value.toString());
+        }
       });
 
-      if (certificate) {
-        formData.append("certificate", certificate);
+      const res = await trainerProfileService.updateTrainerProfile(data);
+      if (res.success) {
+        setToast({ message: "Profile updated successfully!", type: "success" });
+        setTimeout(() => navigate("/trainer/trainer-profile"), 2000);
+      } else {
+        setToast({ message: res.message || "Failed to update profile", type: "error" });
       }
-
-      await trainerService.updateTrainerProfile(formData);
-      setToastMessage("Trainer Data Updated Successfully");
-      setTimeout(() => navigate("/trainer/trainer-profile"), 2000);
     } catch (err) {
-      console.error("Error updating trainer profile", err);
+      setToast({ message: "An unexpected error occurred", type: "error" });
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
+
+  if (loading) return <div className="flex justify-center items-center h-screen">Loading Profile...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <TrainerTopBar />
       <TrainerSideBar />
-
-      <main className="ml-72 pt-24 px-10">
-    {toastMessage && (
-    <Toast
-        message={toastMessage}
-        type="success"
-        onClose={() => setToastMessage("")}
-    />
-    )}
-        <h1 className="text-4xl font-bold mb-10 text-gray-800">
-          Edit Trainer Profile
-        </h1>
-
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-8 rounded-2xl shadow-md space-y-6 max-w-3xl"
-        >
-          <div>
-            <TextInput
-            label="Name"
-              placeholder="Enter Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            {errors.name && <p className="text-red-600 text-sm">{errors.name}</p>}
-          </div>
-
-          <div>
-            <RadioGroup
-              label="Gender"
-              name="gender"
-              options={["Male", "Female", "Other"]}
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-            />
-            {errors.gender && <p className="text-red-600 text-sm">{errors.gender}</p>}
-          </div>
-
-          <div>
-            <SelectField
-              label="Experience"
-              value={experience}
-              options={experienceOptions}
-              onChange={(e) => setExperience(e.target.value)}
-            />
-            {errors.experience && <p className="text-red-600 text-sm">{errors.experience}</p>}
-          </div>
-
-          <CheckboxGroup
-            label="Specializations"
-            options={specializationOptions}
-            selected={specialization}
-            onChange={handleSpecializationChange}
-            error={errors.specializations}
+      
+      <main className="ml-72 pt-24 px-10 pb-12">
+        {toast && (
+          <Toast 
+            message={toast.message} 
+            type={toast.type} 
+            onClose={() => setToast(null)} 
           />
-
-          <CheckboxGroup
-            label="Languages"
-            options={languageOptions}
-            selected={languages}
-            onChange={handleLanguageChange}
-            error={errors.languages}
-          />
-
-          <div>
+        )}
+        
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl font-black text-gray-900 mb-8 uppercase tracking-tight">
+            Edit Trainer Profile
+          </h1>
+          
+          <form 
+            onSubmit={handleSubmit} 
+            className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8 space-y-6"
+          >
             <TextInput
-            label="Bio"
-              placeholder="Enter Bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
+              name='name'
+              label="Full Name"
+              placeholder="Enter your full name"
+              value={formData.name||''}
+              onChange={handleChange}
+              error={errors.name}
             />
-            {errors.bio && <p className="text-red-600 text-sm">{errors.bio}</p>}
-          </div>
 
-          <div>
-            <TextInput
-            label="Phone No"
-              placeholder="Enter Phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-            {errors.phone && <p className="text-red-600 text-sm">{errors.phone}</p>}
-          </div>
+            <div className="grid grid-cols-2 gap-6">
+              <RadioGroup
+                label="Gender"
+                name="gender"
+                options={["male", "female", "other"]}
+                value={formData.gender || ""}
+                onChange={handleChange}
+                error={errors.gender}
+              />
+              <SelectField
+                label="Experience (Years)"
+                name='experience'
+                value={formData.experience?.toString()}
+                options={import.meta.env.VITE_EXPERIENCE?.split(",") || []}
+                onChange={handleChange}
+                error={errors.experience}
+              />
+            </div>
 
-          <div>
             <TextInput
-            label="Address"
-              placeholder="Enter Address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-            {errors.address && <p className="text-red-600 text-sm">{errors.address}</p>}
-          </div>
-
-          <div>
-            <TextInput
-            label="Session Rate"
+              label="Price Per Session (₹)"
+              name="pricePerSession"
               type="number"
-              placeholder="Pricing (per session)"
-              value={pricing.toString()}
-              onChange={(e) => setPricing(Number(e.target.value))}
+              value={formData.pricePerSession?.toString() || ""}
+              onChange={handleChange}
+              error={errors.pricePerSession}
             />
-            {errors.pricing && <p className="text-red-600 text-sm">{errors.pricing}</p>}
-          </div>
 
-          <div>
-            <label className="block font-medium text-gray-700">Certificate</label>
-            {certificateUrl && (
-              <a
-                href={certificateUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 text-sm"
-              >
-                View existing certificate
-              </a>
-            )}
-            <input
-              type="file"
-              className="mt-2"
-              onChange={(e) => setCertificate(e.target.files?.[0] || null)}
+            <CheckboxGroup
+              label="Specializations"
+              options={specializationOptions.map(s => ({ 
+                label: s.name, 
+                value: s.serviceId 
+              }))}
+              selected={formData.services}
+              onChange={(val) => handleCheckboxChange("services", val)}
+              error={errors.services}
             />
-            {errors.certificate && (
-              <p className="text-red-600 text-sm">{errors.certificate}</p>
-            )}
-          </div>
 
-          <SubmitButton
-            text={loading ? "Updating..." : "Update Profile"}
-            loading={loading}
-          />
-        </form>
+            <CheckboxGroup
+              label="Languages"
+              options={import.meta.env.VITE_LANGUAGES?.split(",").map((l: string) => ({
+                label: l.trim(),
+                value: l.trim()
+              })) || []}
+              selected={formData.languages || []}
+              onChange={(val) => handleCheckboxChange("languages", val)}
+              error={errors.languages}
+            />
+
+            <TextInput
+              label="Bio"
+              name="bio"
+              value={formData.bio || ""}
+              onChange={handleChange}
+              error={errors.bio}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <TextInput
+                name="phone"
+                label="Phone"
+                value={formData.phone || ""}
+                onChange={handleChange}
+                error={errors.phone}
+              />
+              <TextInput
+                name="address"
+                label="Address"
+                value={formData.address||''}
+                onChange={handleChange}
+                error={errors.address}
+              />
+            </div>
+
+            <div className="pt-6 border-t border-gray-100">
+              <SubmitButton
+                text="Save Changes"
+                loading={actionLoading}
+              />
+            </div>
+          </form>
+        </div>
       </main>
     </div>
   );

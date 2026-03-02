@@ -3,36 +3,47 @@ import TrainerSideBar from "../../layout/TrainerSideBar";
 import { useEffect, useState } from "react";
 import { InfoItem } from "../../components/InfoItem";
 import { useNavigate } from "react-router-dom";
+import Pagination from "../../components/Pagination";
+import GenericTable from "../../components/GenericTable";
+import { TrainerWalletColumns } from "../../constants/TableColumns/TrainerWalletColumn";
 import {
   FaMapMarkerAlt,
   FaDumbbell,
   FaStar,
   FaClock,
-  FaMoneyBillWave,
-  FaCamera
+  FaCamera,
+  FaWallet
 } from "react-icons/fa";
 import { MdWork } from "react-icons/md";
-import { trainerService } from "../../services/trainerService";
+import { trainerProfileService } from "../../services/trainer/trainer.Profile.service";
+import { trainerWalletService } from "../../services/trainer/trainer.Wallet.service";
 
 const DEFAULT_IMAGE =
   "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const TrainerProfile = () => {
-  const navigate=useNavigate()
+  const navigate = useNavigate()
   const [trainer, setTrainer] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"wallet" | "settings">("wallet");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [wallet, setWallet] = useState<any>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const walletColumns = TrainerWalletColumns(navigate);
   useEffect(() => {
-  document.title = "FitConnect | Trainer Profile";
-}, []);
-    const handleReapply = () => {
+    document.title = "FitConnect | Trainer Profile";
+  }, []);
+
+  const handleReapply = () => {
     navigate("/trainer/trainer-profile/re-apply");
   };
-      const handleEditProfile = () => {
+  const handleEditProfile = () => {
     navigate("/trainer/trainer-profile/edit-profile");
   };
   useEffect(() => {
     const fetchTrainerProfile = async () => {
       try {
-        const res = await trainerService.getTrainerDetails();
+        const res = await trainerProfileService.getTrainerDetails();
         console.log(res);
         setTrainer(res?.trainer || null);
       } catch (err) {
@@ -42,22 +53,45 @@ const TrainerProfile = () => {
 
     fetchTrainerProfile();
   }, []);
+  useEffect(() => {
+    if (activeTab === "wallet") {
+      fetchWallet();
+    }
+  }, [page, activeTab]);
 
-  const handleProfilePicChange=async(e: React.ChangeEvent<HTMLInputElement>)=>{
-    const file=e.target.files?.[0]
-    if(!file) return
+  const fetchWallet = async () => {
+    try {
+      setWalletLoading(true);
+      const res = await trainerWalletService.fetchTrainerWallet(page, 5);
+      if (res?.success) {
+        const walletData = res.data[0];
+        setWallet(walletData);
+        setTotalPages(res.total);
+      }
+    } catch (err) {
+      console.error("Failed to fetch trainer wallet", err);
+    } finally {
+      setWalletLoading(false);
+    }
+  };
 
-    try{
-       const formData = new FormData();
-       formData.append("image", file);
 
-       const res=await trainerService.updateTrainerProfilePic(formData)
+
+  const handleProfilePicChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const res = await trainerProfileService.updateTrainerProfilePic(formData)
       console.log(res)
-       setTrainer((prev:any)=>({
+      setTrainer((prev: any) => ({
         ...prev,
-        profilePic:res?.imageUrl
-       }))
-    }catch(err){
+        profilePic: res.data?.imageUrl
+      }))
+    } catch (err) {
       console.log(err)
     }
   }
@@ -73,30 +107,35 @@ const TrainerProfile = () => {
         {trainer ? (
           <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-xl p-10 flex gap-10">
             <div className="flex flex-col items-center">
-<div className="relative">
-  <img
-    src={trainer.profilePic || DEFAULT_IMAGE}
-    alt="Trainer"
-    className="w-60 h-60 object-cover rounded-full shadow-lg"
-  />
+              <div className="relative">
+                <img
+                  src={trainer.profilePic || DEFAULT_IMAGE}
+                  alt="Trainer"
+                  className="w-60 h-60 object-cover rounded-full shadow-lg"
+                />
 
 
-  <label
-    htmlFor="profilePicUpload"
-    className="absolute bottom-2 right-4 bg-blue-600 p-2 rounded-full cursor-pointer shadow-lg hover:bg-blue-700 transition"
-  >
-    <FaCamera className="text-white text-lg" />
-  </label>
+                <label
+                  htmlFor="profilePicUpload"
+                  className={`absolute bottom-2 right-4 p-2 rounded-full shadow-lg transition
+    ${trainer.verified !== "accepted"
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                    }`}
+                >
+                  <FaCamera className="text-white text-lg" />
+                </label>
 
 
-  <input
-    type="file"
-    id="profilePicUpload"
-    accept="image/*"
-    className="hidden"
-    onChange={handleProfilePicChange}
-  />
-</div>
+                <input
+                  type="file"
+                  id="profilePicUpload"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={trainer.verified !== "accepted"}
+                  onChange={handleProfilePicChange}
+                />
+              </div>
 
               <button
                 className="mt-6 px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl shadow hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -131,13 +170,12 @@ const TrainerProfile = () => {
 
               <div className="mt-4">
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    trainer.verified === "accepted"
-                      ? "bg-green-100 text-green-700"
-                      : trainer.verified === "pending"
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${trainer.verified === "accepted"
+                    ? "bg-green-100 text-green-700"
+                    : trainer.verified === "pending"
                       ? "bg-yellow-100 text-yellow-700"
                       : "bg-red-100 text-red-700"
-                  }`}
+                    }`}
                 >
                   {trainer.verified}
                 </span>
@@ -157,9 +195,14 @@ const TrainerProfile = () => {
                 />
                 <InfoItem
                   icon={<FaDumbbell className="text-blue-600 text-xl" />}
-                  label="Specialization"
-                  value={trainer.specialization || "Not added"}
+                  label="Services"
+                  value={
+                    trainer.services?.length
+                      ? trainer.services.map((s: any) => s.name).join(", ")
+                      : "Not added"
+                  }
                 />
+
                 <InfoItem
                   icon={<FaStar className="text-yellow-500 text-xl" />}
                   label="Rating"
@@ -177,16 +220,20 @@ const TrainerProfile = () => {
                   }
                 />
                 <InfoItem
-                  icon={<FaMoneyBillWave className="text-green-600 text-xl" />}
-                  label="Pricing"
-                  value={trainer.pricing || "Not added"}
-                />
-                <InfoItem
                   icon={<FaDumbbell className="text-blue-600 text-xl" />}
                   label="Languages"
                   value={
                     trainer.languages?.length
                       ? trainer.languages.join(", ")
+                      : "Not added"
+                  }
+                />
+                <InfoItem
+                  icon={<FaDumbbell className="text-blue-600 text-xl" />}
+                  label="Price / Session"
+                  value={
+                    trainer.pricePerSession
+                      ? `₹${trainer.pricePerSession}`
                       : "Not added"
                   }
                 />
@@ -196,6 +243,82 @@ const TrainerProfile = () => {
         ) : (
           <p className="text-center text-gray-500">Loading profile...</p>
         )}
+
+        <div className="max-w-6xl mx-auto mt-10">
+          <div className="flex gap-8 border-b mb-6">
+            {["wallet", "settings"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`pb-3 font-semibold capitalize ${activeTab === tab
+                  ? "border-b-2 border-blue-600 text-blue-600"
+                  : "text-gray-500"
+                  }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === "wallet" && (
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div className="flex">
+                <div className="bg-gray-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden min-w-[300px]">
+                  <div className="relative z-10">
+                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-1">
+                      Total Balance
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm font-medium text-gray-400">₹</span>
+                      <h2 className="text-3xl font-black">{wallet?.balance ?? 0}</h2>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-green-400 text-[10px] font-bold">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                      WITHDRAWABLE
+                    </div>
+                  </div>
+                  <FaWallet className="absolute -right-2 -bottom-2 text-gray-800 text-7xl opacity-30" />
+                </div>
+              </div>
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
+                  <h3 className="text-sm font-black text-gray-800 uppercase tracking-wider">
+                    Earnings Log
+                  </h3>
+                  <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                    {wallet?.transactions?.length || 0} Transactions
+                  </span>
+                </div>
+
+                <GenericTable
+                  data={wallet?.transactions || []}
+                  columns={walletColumns}
+                  page={page}
+                  loading={walletLoading}
+                  emptyMessage="No earnings recorded yet."
+                />
+
+                {totalPages >= 1 && (
+                  <div className="p-4 border-t border-gray-50  bg-gray-50/10">
+                    <Pagination
+                      page={page}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "settings" && (
+            <div className="bg-white rounded-xl shadow p-6">
+              <p className="text-gray-600">
+                Settings will be available soon.
+              </p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

@@ -1,177 +1,162 @@
+
 import UserNavBar from "../../layout/UserNavBar";
 import React, { useState, useEffect } from "react";
-import { FaUser, FaEnvelope, FaPhone, FaHome, FaSave } from "react-icons/fa";
-import axiosInstance from "../../api/AxiosInstance";
+import { FaUser, FaPhone, FaHome,  FaVenusMars, FaBirthdayCake, FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { validateUserProfile } from "../../validations/userProfileValidation";
-
-interface UserProfile {
-  email: string;
-  name: string;
-  phone: string;
-  address: string;
-}
-
-interface Errors {
-  email?: string;
-  name?: string;
-  phone?: string;
-  address?: string;
-}
-
-
+import { userProfileService } from "../../services/user/user.Profile.service";
+import { type ValidationErrors } from "../../validations/userProfileValidation";
+import {type UpdateUserProfileDTO } from "../../types/userType";
 const EditProfile: React.FC = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<UserProfile>({
+
+
+  const [formData, setFormData] = useState<UpdateUserProfileDTO>({
     name: "",
-    email: "",
     phone: "",
     address: "",
+    gender: "",
+    age: undefined,
+    profilePic: ""
   });
-  const [errors, setErrors] = useState<Errors>({});
+
+  const [errors, setErrors] = useState<ValidationErrors<UpdateUserProfileDTO>>({});
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-  document.title = "FitConnect | Edit Profile";
-}, []);
-  useEffect(() => {
+    document.title = "FitTribe | Edit Profile";
     const fetchUserProfile = async () => {
       try {
-        const res = await axiosInstance.get("/user-details", {
-          withCredentials: true,
-        });
-        setFormData({
-          name: res.data.userData.name,
-          email: res.data.userData.email,
-          phone: res.data.userData.phone,
-          address: res.data.userData.address,
-        });
+        const res = await userProfileService.fetchUserProfile();
+        setFormData(res.userData);
       } catch (err) {
         console.error("Error fetching profile:", err);
+      } finally {
+        setLoading(false);
       }
     };
-
     fetchUserProfile();
   }, []);
 
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "age" ? (value ? Number(value) : undefined) : value,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const validationErrors =await validateUserProfile(formData);
+    const validationErrors = validateUserProfile(formData);
     setErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length > 0) {
-      return;
-    }
+    if (Object.keys(validationErrors).length > 0) return;
 
     try {
-      await axiosInstance.patch(
-        "/update-userdata",
-        formData,
-        { withCredentials: true }
-      );
-      navigate("/profile");
+      const res = await userProfileService.updateUserProfile(formData);
+      if (res.success) {
+        navigate('/profile');
+      }
     } catch (err) {
       console.error("Error updating profile:", err);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
     <>
- 
-
       <UserNavBar />
-      <div className="flex justify-center p-6 bg-gray-50 mt-24">
-        <div className="bg-white shadow-md rounded-xl p-8 w-full max-w-lg">
-          <h2 className="text-2xl font-bold mb-6 text-center">Edit Profile</h2>
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div>
-              <label className="block font-semibold mb-1">Full Name</label>
-              <div className="flex items-center border rounded-lg px-3">
-                <FaUser className="text-gray-500 mr-2" />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your name"
-                  className="w-full py-2 outline-none"
-                />
-              </div>
-              {errors.name && (
-                <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-              )}
+      <main className="min-h-screen bg-[#F8FAFC] pt-[120px] pb-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <button 
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-medium"
+            >
+              <FaArrowLeft /> Back
+            </button>
+            <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Edit Profile</h1>
+          </div>
+
+          <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-gray-900 p-8 flex justify-center">
+                <div className="relative">
+                    <img 
+                        src={formData.profilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                        className="w-24 h-24 rounded-full border-4 border-white object-cover"
+                        alt="Profile"
+                    />
+                </div>
             </div>
 
-            <div>
-              <label className="block font-semibold mb-1">Email</label>
-              <div className="flex items-center border rounded-lg px-3">
-                <FaEnvelope className="text-gray-500 mr-2" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  className="w-full py-2 outline-none"
-                  disabled
-                />
-              </div>
-              {errors.email && (
-                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
-              )}
-            </div>
+            <form className="p-8 space-y-6" onSubmit={handleSubmit}>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+                  <div className={`flex items-center border-2 rounded-2xl px-4 transition-all ${errors.name ? 'border-red-500' : 'border-gray-50 focus-within:border-gray-900'}`}>
+                    <FaUser className="text-gray-400 mr-3" />
+                    <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full py-3 outline-none text-sm font-semibold" />
+                  </div>
+                  {errors.name && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1">{errors.name}</p>}
+                </div>
 
-            <div>
-              <label className="block font-semibold mb-1">Phone Number</label>
-              <div className="flex items-center border rounded-lg px-3">
-                <FaPhone className="text-gray-500 mr-2" />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Enter your phone number"
-                  className="w-full py-2 outline-none"
-                />
-              </div>
-              {errors.phone && (
-                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
-              )}
-      </div>
-            <div>
-              <label className="block font-semibold mb-1">Address</label>
-              <div className="flex items-center border rounded-lg px-3">
-                <FaHome className="text-gray-500 mr-2" />
-                <textarea
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Enter your address"
-                  className="w-full py-2 outline-none resize-none"
-                  rows={3}
-                />
-              </div>
-              {errors.address && (
-                <p className="text-red-500 text-sm mt-1">{errors.address}</p>
-              )}
-            </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
+                  <div className="flex items-center border-2 border-gray-50 rounded-2xl px-4 focus-within:border-gray-900 transition-all">
+                    <FaPhone className="text-gray-400 mr-3" />
+                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full py-3 outline-none text-sm font-semibold" />
+                  </div>
+                </div>
 
-            <div className="flex justify-center">
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                <FaSave /> Save Changes
-              </button>
-            </div>
-          </form>
+            
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Age</label>
+                  <div className="flex items-center border-2 border-gray-50 rounded-2xl px-4 focus-within:border-gray-900 transition-all">
+                    <FaBirthdayCake className="text-gray-400 mr-3" />
+                    <input type="number" name="age" value={formData.age ?? ""} onChange={handleChange} className="w-full py-3 outline-none text-sm font-semibold" />
+                  </div>
+                </div>
+
+            
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Gender</label>
+                  <div className="flex items-center border-2 border-gray-50 rounded-2xl px-4 focus-within:border-gray-900 transition-all">
+                    <FaVenusMars className="text-gray-400 mr-3" />
+                    <select name="gender" value={formData.gender} onChange={handleChange} className="w-full py-3 outline-none text-sm font-semibold bg-transparent">
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+       
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Residential Address</label>
+                <div className="flex items-start border-2 border-gray-50 rounded-2xl px-4 py-3 focus-within:border-gray-900 transition-all">
+                  <FaHome className="text-gray-400 mt-1 mr-3" />
+                  <textarea name="address" value={formData.address} onChange={handleChange} rows={3} className="w-full outline-none text-sm font-semibold resize-none" />
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-xs uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-gray-200"
+                >
+                  Save Profile Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      </main>
     </>
   );
 };

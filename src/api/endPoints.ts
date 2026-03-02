@@ -1,0 +1,80 @@
+
+export const API_ENDPOINTS = {
+  AUTH: {
+    LOGOUT: '/logout',
+    VERIFY_USER_TOKEN: '/verify-userToken',
+    FORGOT_PASSWORD: '/forgot-password',
+    RESET_PASSWORD: (token: string) => `/reset-password/${token}`,
+  },
+  PUBLIC:{
+    GET_PUBLIC_SERVICES:'/public/services',
+       REFRESH_TOKEN: '/public/refresh-token',
+       RESEND_OTP:'/public/resend-otp',
+       VERIFY_USER_OTP:'/public/verify-otp/user',
+       VERIFY_TRAINER_OTP:'/public/verify-otp/trainer'
+  },
+  ADMIN: {
+    LOGIN: '/admin/login',
+    DASHBOARD: '/admin/dashboard',
+    WALLET: '/admin/get-adminwallet',
+    SERVICES: {
+      BASE: '/admin/services',
+      ADD: '/admin/services/add',
+      BY_ID: (id: string) => `/admin/services/${id}`,
+      STATUS_BY_ID: (id: string) => `/admin/services/status/${id}`,
+    },
+    TRAINERS: {
+      BASE: '/admin/trainers',
+      PENDING: '/admin/pending-trainers',
+      BY_ID: (id: string) => `/admin/trainers/${id}`,
+      VERIFY_ACTION: (id: string) => `/admin/verify-trainer-action/${id}`,
+      STATUS_BY_ID: (id: string) => `/admin/trainer/status/${id}`
+    },
+    USERS: {
+      BASE: '/admin/users',
+      BY_ID: (id: string) => `/admin/users/${id}`,
+      STATUS_BY_ID: (id: string) => `/admin/user/status/${id}`,
+    },
+  },
+  TRAINER: {
+    LOGIN: '/trainer/login',
+    CREATE: '/trainer/create-trainer',
+    GET_DETAILS: '/trainer/get-trainer',
+    REAPPLY: '/trainer/re-apply',
+    UPDATE: '/trainer/update',
+    UPDATE_PIC: '/trainer/update-profilepic',
+    SLOTS: '/trainer/get-slots',
+    UPDATE_WEEKLY_SLOTS: '/trainer/update-weeklyslots',
+    WALLET: '/trainer/get-trainerwallet',
+    VERIFY_TOKEN: '/trainer/verify-token',
+    FETCH_ALL_BOOKINGS:"/trainer/bookings/all-bookings",
+    FETCH_PENDING_BOOKINGS: "/trainer/bookings/pending",
+    FETCH_RESCHEDULE_REQUESTS: "/trainer/bookings/reschedule-requests",
+    HANDLE_RESCHEDULE_REQUESTS:"/trainer/booking/reschedule-action",
+    ACCEPT_BOOKING: (id: string) => `/trainer/bookings/accept/${id}`,
+    REJECT_BOOKING: (id: string) => `/trainer/bookings/reject/${id}`,
+    FETCH_BOOKING_DETAILS:(id:string)=>`/trainer/bookings/${id}`,
+    TRAINER_DASHBOARD:'/trainer/dashboard',
+     TRAINER_DASHBOARD_APPOINMENT:'/trainer/dashboard/appointment'
+  },
+  USER: {
+    LOGIN: '/login',
+    SIGNUP: '/create-user',
+    UPDATE_PIC: '/update-userprofilepic',
+    GET_SERVICES: '/get-services',
+    LIST_TRAINERS: '/list-trainers',
+    FETCH_TRAINER:(id:string)=>`/trainer/${id}`,
+    TRAINER_SLOTS: '/trainer-slots',
+    WALLET: '/get-userwallet',
+    BOOKINGS: '/bookings',
+    BOOKING_WALLET: '/booking/wallet',
+    FETCH_USER_PROFILE:"/user-details",
+    UPDATE_USER_PROFILE:"/update-userdata",
+    CHANGE_PASSWORD:"/change-password",
+    CREATE_ORDER:'/booking/create-order',
+    VERIFY_PAYMENT:'/booking/verify-payment',
+    GET_BOOKING_BY_ID:(id:string)=>`/bookings/${id}`,
+    RESCHEDULE_BOOKING:'/booking/reschedule',
+    CANCEL_BOOKING:(id:string)=>`/booking/cancel/${id}`
+  },
+};

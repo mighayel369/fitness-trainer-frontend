@@ -1,39 +1,33 @@
-interface Data {
-  name: string;
-  gender?: string;
-  experience?: string;
-  certificate?: File;
-  specializations?: string[];
-  languages?:string[]
-}
+import { type ReapplyTrainerDTO } from "../types/trainerType";
 
-interface Errors {
-  name?: string;
-  gender?: string;
-  experience?: string;
-  specializations?: string;
-  languages?:string
-}
+export type ValidationErrors<T> = Partial<Record<keyof T, string>>;
 
-export const reapplyValidation = (data: Data): Errors => {
-  const newErrors: Errors = {};
+export const reapplyValidation = (data: ReapplyTrainerDTO): ValidationErrors<ReapplyTrainerDTO> => {
+  const newErrors: ValidationErrors<ReapplyTrainerDTO> = {};
 
-  if (!data.name.trim()) {
+  if (!data.name?.trim()) {
     newErrors.name = "Full name is required";
   }
 
-  if (data.gender !== undefined && data.gender.trim() === "") {
+  if (!data.gender) {
     newErrors.gender = "Gender is required";
   }
 
-  if (data.experience !== undefined && data.experience.trim() === "") {
-    newErrors.experience = "Experience is required";
+  if (!data.experience) {
+    newErrors.experience = "Experience level is required";
   }
 
-
-  if (data.specializations !== undefined && data.specializations.length === 0) {
-    newErrors.specializations = "Please select at least one specialization";
+  if (!data.services || data.services.length === 0) {
+    newErrors.services = "Please select at least one specialization";
   }
-  
+
+  if (!data.languages || data.languages.length === 0) {
+    newErrors.languages = "Please select at least one language";
+  }
+
+  if (!data.certificate && !document.querySelector('.existing-cert-link')) { 
+      newErrors.certificate = "Please upload your certification documents";
+  }
+
   return newErrors;
 };

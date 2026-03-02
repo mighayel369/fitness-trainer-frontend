@@ -1,175 +1,214 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { FaUserTie, FaCheckCircle, FaTimesCircle, FaCertificate, FaUserShield, FaClock, FaVenusMars } from "react-icons/fa";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  FaCheck, FaEnvelope, FaAward, FaLanguage, FaCertificate, FaClock, FaVenusMars, FaArrowLeft
+} from "react-icons/fa";
+import { DetailCard } from './../../components/DetailCard';
 import AdminTopBar from "../../layout/AdminTopBar";
 import AdminSideBar from "../../layout/AdminSideBar";
-import { adminTrainerService } from "../../services/adminTrainerService";
+import { adminTrainerService } from "../../services/admin/admin.Trainer.service";
+import Modal from "../../components/Modal";
+import Toast from "../../components/Toast";
 import Loading from "../../components/Loading";
 import NotFound from "../../components/NotFound";
+import { type AdminTrainerDetails } from "../../types/trainerType";
+import SubmitButton from "../../components/SubmitButton";
 
+const DEFAULT_IMAGE = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
-const DEFAULT_IMAGE =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-type Trainer = {
-  name: string;
-  email: string;
-  _id: string;
-  status: boolean;
-  verified: boolean;
-  role: string;
-  gender: string;
-  experience: string;
-  specialization: string[];
-  createdAt: Date;
-  certificate: string;
-  profilePic:string;
-};
-
-const TrainerDetails: React.FC = () => {
+const TrainerDetails = () => {
   const { id } = useParams();
-  const [trainer, setTrainer] = useState<Trainer | null>(null);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-useEffect(() => {
-  document.title = "FitConnect | Trainer Details";
-}, []);
+  const [trainer, setTrainer] = useState<AdminTrainerDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [verifyAction, setVerifyAction] = useState<"accept" | "decline">("accept");
+  const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
 
   useEffect(() => {
-    const fetchTrainer = async () => {
-      try {
-        const response = await adminTrainerService.fetchTrainerById(id!);
-        setTrainer(response.trainer);
-      } catch (error) {
-        console.error("Failed to fetch trainer details", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+    document.title = "FitTribe | Trainer Details";
     if (id) fetchTrainer();
   }, [id]);
+
+  const fetchTrainer = async () => {
+    try {
+      setLoading(true);
+      const response = await adminTrainerService.fetchTrainerById(id!);
+      setTrainer(response.trainer);
+    } catch (error) {
+      console.error("Failed to fetch trainer", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyClick = (action: "accept" | "decline") => {
+    setVerifyAction(action);
+    setShowVerifyModal(true);
+  };
+
+  const confirmVerification = async (reason?: string) => {
+    if (!id) return;
+    setActionLoading(true);
+    setShowVerifyModal(false);
+
+    try {
+      const result = await adminTrainerService.updateVerification(id, verifyAction, reason);
+      if (result.success) {
+        setTrainer((prev) => prev ? { ...prev, verified: result.updatedStatus } : null);
+        setToast({ message: result.message, type: "success" });
+      }
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.message || "Verification failed", 
+        type: "error" 
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const toggleBlockStatus = async () => {
+    if (!trainer) return;
+    setActionLoading(true);
+    setShowStatusModal(false);
+
+    try {
+      const result = await adminTrainerService.updateTrainerStatus(trainer.trainerId, !trainer.status);
+      if (result.success) {
+        setTrainer((prev) => prev ? { ...prev, status: result.newStatus } : null);
+        setToast({ message: result.message, type: "success" });
+      }
+    } catch (err: any) {
+      setToast({ 
+        message: err.response?.data?.message || "Status update failed", 
+        type: "error" 
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) return <Loading message="Fetching profile..." />;
+  if (!trainer) return <NotFound message="Trainer not found" />;
 
   return (
     <>
       <AdminTopBar />
       <AdminSideBar />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <main className="ml-64 mt-16 p-6 bg-gray-100 min-h-screen">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Trainer Profile</h2>
+      <Modal
+        isVisible={showVerifyModal}
+        onCancel={() => setShowVerifyModal(false)}
+        onConfirm={confirmVerification}
+        title={verifyAction === "accept" ? "Accept Trainer" : "Decline Trainer"}
+        message={`Confirm ${verifyAction} for ${trainer.name}?`}
+        showReasonInput={verifyAction === "decline"}
+      />
 
-        {loading ? (
-          <Loading message="Loading trainer details..." />
-        ) : !trainer ? (
-          <NotFound message="Trainer not found." />
-        ) : (
-          <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
-        
-            <div className="flex items-center gap-6 border-b pb-6">
-              <img
-                src={trainer.profilePic ||  DEFAULT_IMAGE}
-                alt={`${trainer.name}'s avatar`}
-                className="w-24 h-24 rounded-full border object-cover"
-              />
-              <div>
-                <h3 className="text-xl font-semibold flex items-center gap-2">
-                  {trainer.name}
-                  {trainer.verified ? (
-                    <FaCheckCircle className="text-green-500" title="Verified" />
-                  ) : (
-                    <FaTimesCircle className="text-red-500" title="Not Verified" />
-                  )}
-                </h3>
-                <p className="text-gray-600">{trainer.email}</p>
-                <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                  <FaClock className="text-gray-400" />
-                  Joined{" "}
-                  {new Date(trainer.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-            </div>
+      <Modal
+        isVisible={showStatusModal}
+        onCancel={() => setShowStatusModal(false)}
+        onConfirm={toggleBlockStatus}
+        title={trainer.status ? "Block Trainer" : "Unblock Trainer"}
+        message={`Change access for ${trainer.name}?`}
+      />
 
-  
-            <div className="mt-6 space-y-4">
-              <div className="flex justify-between text-gray-700">
-                <span className="flex items-center gap-2">
-                  <FaUserShield className="text-gray-400" /> Role
-                </span>
-                <span className="font-medium">{trainer.role}</span>
-              </div>
+      <main className="ml-64 mt-16 p-8 bg-gray-50 min-h-screen">
+        <div className="max-w-4xl mx-auto mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors font-medium"
+          >
+            <FaArrowLeft /> Back to List
+          </button>
+        </div>
 
-              <div className="flex justify-between text-gray-700">
-                <span className="flex items-center gap-2">
-                  <FaUserTie className="text-gray-400" /> Status
-                </span>
-                {trainer.status ? (
-                  <span className="flex items-center gap-1 text-green-600 font-medium">
-                    Active
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-red-600 font-medium">
-                    Blocked
-                  </span>
-                )}
-              </div>
-
-              <div className="flex justify-between text-gray-700">
-                <span className="flex items-center gap-2">
-                  <FaVenusMars className="text-gray-400" /> Gender
-                </span>
-                <span className="font-medium">{trainer.gender || "Not specified"}</span>
-              </div>
-
-              <div className="flex justify-between text-gray-700">
-                <span className="flex items-center gap-2">
-                  <FaUserTie className="text-gray-400" /> Experience
-                </span>
-                <span className="font-medium">{trainer.experience}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 border-t pt-6 space-y-4">
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-1">Specializations</h4>
-                <p className="text-gray-800">
-                  {trainer.specialization.length > 0
-                    ? trainer.specialization.join(", ")
-                    : "Not specified"}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                  <FaCertificate className="text-gray-400" /> Certificate
-                </h4>
-                <a
-                  href={trainer.certificate}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  View Certificate
-                </a>
-              </div>
-            </div>
-
-
-            <div className="mt-8 flex justify-end">
-              <button
-                className={`px-5 py-2 rounded-md font-medium text-white shadow-sm transition ${
-                  trainer.status
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-green-500 hover:bg-green-600"
-                }`}
-              >
-                {trainer.status ? "Block Trainer" : "Unblock Trainer"}
-              </button>
+        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+          <div className={`p-8 flex flex-col items-center text-white ${
+            trainer.verified === 'pending' 
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-600' 
+              : 'bg-gradient-to-r from-teal-500 to-emerald-600'
+          }`}>
+            <img 
+              src={trainer.profilePic || DEFAULT_IMAGE} 
+              className="w-32 h-32 rounded-full border-4 border-white shadow-xl mb-4 bg-white object-cover" 
+              alt="avatar" 
+            />
+            <h2 className="text-3xl font-bold flex items-center gap-2">
+              {trainer.name}
+              {trainer.verified === "accepted" && <FaCheck className="text-green-300 text-xl" />}
+            </h2>
+            <p className="opacity-90 flex items-center gap-2 italic"><FaEnvelope /> {trainer.email}</p>
+            <div className="mt-2 px-4 py-1 bg-white/20 rounded-full text-xs font-medium uppercase tracking-wider">
+              Role: {trainer.role} | Verification: {trainer.verified}
             </div>
           </div>
-        )}
+
+          <div className="p-8 grid md:grid-cols-2 gap-6">
+            <DetailCard icon={<FaVenusMars />} label="Gender" value={trainer.gender || "Not specified"} />
+            <DetailCard icon={<FaAward />} label="Experience" value={`${trainer.experience} Years`} />
+            <DetailCard icon={<FaCheck />} label="Specializations" value={trainer.services?.map(s => s.name).join(", ") || "None"} />
+            <DetailCard icon={<span className="text-lg">₹</span>} label="Price/Session" value={trainer.pricePerSession ? `₹${trainer.pricePerSession}` : "Free"} />
+            <DetailCard icon={<FaLanguage />} label="Languages" value={trainer.languages?.join(", ") || "English"} />
+            <DetailCard icon={<FaClock />} label="Joined On" value={new Date(trainer.joined).toLocaleDateString()} />
+
+            <div className="md:col-span-2 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+              <h4 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <FaCertificate className="text-indigo-600" /> Professional Certification
+              </h4>
+              <a 
+                href={trainer.certificate} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="text-indigo-600 font-bold hover:underline"
+              >
+                View Uploaded Document &rarr;
+              </a>
+            </div>
+          </div>
+          <div className="p-6 bg-gray-50 border-t flex justify-end items-center gap-4">
+            {trainer.verified === "pending" ? (
+              <>
+                <SubmitButton
+                  type="button"
+                  text="Decline Application"
+                  loading={actionLoading && verifyAction === "decline"}
+                  onClick={() => handleVerifyClick("decline")}
+                  className="px-6 py-2.5 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200"
+                />
+                <SubmitButton
+                  type="button"
+                  text="Approve & Verify"
+                  loading={actionLoading && verifyAction === "accept"}
+                  onClick={() => handleVerifyClick("accept")}
+                  className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-md"
+                />
+              </>
+            ):trainer.verified==='accepted'?(
+              <div className="w-full md:w-64">
+                <SubmitButton
+                  type="button"
+                  text={trainer.status ? 'Block Account' : 'Unblock Account'}
+                  loading={actionLoading}
+                  onClick={() => setShowStatusModal(true)}
+                  className={`w-full px-8 py-2.5 rounded-xl font-bold text-white shadow-md transition ${
+                    trainer.status ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                />
+              </div>
+            ): (
+            <div className="text-red-500 font-semibold italic">
+              {trainer?.rejectReason}
+            </div>
+          )}
+          </div>
+        </div>
       </main>
     </>
   );

@@ -1,51 +1,42 @@
 import AdminTopBar from "../../layout/AdminTopBar";
 import AdminSideBar from "../../layout/AdminSideBar";
 import { useEffect, useState } from "react";
-import { adminTrainerService } from "../../services/adminTrainerService";
+import { adminTrainerService } from "../../services/admin/admin.Trainer.service";
 import { useNavigate } from "react-router-dom";
 import GenericTable from "../../components/GenericTable";
 import Pagination from "../../components/Pagination";
 import SearchInput from "../../components/SearchInput";
-
-type Trainer = {
-  _id: string;
-  name: string;
-  email: string;
-  status: boolean;
-  createdAt: Date;
-  gender?: string;
-  age?: number;
-  specialization?: string[];
-};
+import { type PendingTrainer } from "../../types/trainerType";
 
 const VerifyTrainer = () => {
   const [loading, setLoading] = useState(false);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [trainers, setTrainers] = useState<PendingTrainer[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
 
   const navigate = useNavigate();
   useEffect(() => {
-    document.title = "FitConnect | Verify Trainer";
+    document.title = "FitTribe | Verify Trainer";
   }, []);
-  const fetchTrainers = async () => {
-    setLoading(true);
-    try {
-      const response = await adminTrainerService.fetchPendingTrainers();
-      if (response.success) {
-        setTrainers(response.trainers || []);
-        setTotalPages(response.totalPages || 1);
-      }
-    } catch (err) {
-      console.log("Failed to fetch trainers", err);
-    } finally {
-      setLoading(false);
+const fetchTrainers = async () => {
+  setLoading(true);
+  try {
+    const response = await adminTrainerService.fetchPendingTrainers(page, search);
+
+    if (response.success) {
+      setTrainers(response.data);
+      setTotalPages(response.total);
     }
-  };
+  } catch (err) {
+    console.error("Failed to fetch trainers", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleVerify = (trainerId: string) => {
-    navigate(`/admin/verify-trainer/${trainerId}`);
+   navigate(`/admin/trainers/${trainerId}`);
   };
 
   useEffect(() => {
@@ -66,33 +57,38 @@ const VerifyTrainer = () => {
               setPage(1);
             }}
             placeholder="Search trainers..."
+            fullWidth={false}
+
           />
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
-          <GenericTable<Trainer>
+          <GenericTable<PendingTrainer>
             data={trainers}
             columns={[
               { header: "Name", accessor: "name" },
-              { header: "Age", accessor: "age", render: (t) => t.age ?? "NA" },
               {
                 header: "Gender",
                 accessor: "gender",
                 render: (t) => t.gender ?? "NA",
               },
               {
-                header: "Specialization",
-                accessor: "specialization",
-                render: (t) =>
-                  t.specialization?.join(", ") || "NA",
-              },
+                 header: "Services",
+                 accessor: "services",
+                 render: (t) => t.services.length ? t.services.join(", ") : "NA",
+                },
+              {
+                  header: "Price",
+                  accessor: "pricePerSession",
+                  render: (t) => t.pricePerSession ? `₹${t.pricePerSession}` : "NA",
+                },
               {
                 header: "Action",
                 accessor: "action",
                 render: (t) => (
                   <button
                     className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs"
-                    onClick={() => handleVerify(t._id)}
+                    onClick={() => handleVerify(t.trainerId)}
                   >
                     Verify
                   </button>
@@ -105,12 +101,11 @@ const VerifyTrainer = () => {
             emptyMessage="No Trainers Found."
           />
 
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPrevious={() => setPage((prev) => Math.max(prev - 1, 1))}
-            onNext={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-          />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
         </div>
       </main>
     </>
