@@ -1,15 +1,17 @@
 interface SelectFieldProps {
   label: string;
-  value: string;
+  name:string;
+  value?: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options: string[];
   error?: string;
 }
 
-const SelectField: React.FC<SelectFieldProps> = ({ label, value, onChange, options, error }) => (
+const SelectField: React.FC<SelectFieldProps> = ({ label,name, value, onChange, options, error }) => (
   <div>
     <label className="block font-medium">{label}</label>
     <select
+      name={name}
       value={value}
       onChange={onChange}
       className="w-full px-4 py-2 border rounded-md"

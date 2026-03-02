@@ -4,14 +4,14 @@ import { IoIosNotifications } from "react-icons/io"
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { useDispatch } from "react-redux";
-import { tokenService } from '../services/tokenService'
+import { adminAuthService } from '../services/admin/admin.Auth.service'
 import { clearAccessToken } from "../redux/slices/authSlice";
 const AdminTopBar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate=useNavigate()
   const dispatch = useDispatch();
   const handleLogout = async() => {
-    await tokenService.clearRefreshToken()
+    await adminAuthService.clearRefreshToken()
     dispatch(clearAccessToken());
     navigate('/admin/login');
   };
@@ -20,7 +20,7 @@ const AdminTopBar = () => {
     <nav className="bg-black text-white w-full h-16 px-6 flex justify-between items-center fixed top-0 left-0 right-0 z-10 shadow-md">
         <div className="flex items-center gap-3">
         <img src={logoPic} alt="logo" className="w-10 h-10 object-cover rounded-full" />
-        <h1 className="text-xl font-semibold">FITCONNECT ADMIN PANEL</h1>
+        <h1 className="text-xl font-semibold">FitTribe Admin Portal</h1>
       </div>
       <div className="flex gap-5 items-center text-2xl">
         <div className="relative" onMouseEnter={() => setShowDropdown(true)} onMouseLeave={() => setShowDropdown(false)} >

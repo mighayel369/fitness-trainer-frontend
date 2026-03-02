@@ -1,28 +1,16 @@
 
-
-
 import AdminTopBar from "../../layout/AdminTopBar";
 import AdminSideBar from "../../layout/AdminSideBar";
 import { useEffect, useState } from "react";
-import { adminTrainerService } from "../../services/adminTrainerService";
+import { adminTrainerService } from "../../services/admin/admin.Trainer.service";
 import Modal from "../../components/Modal";
 import Toast from "../../components/Toast";
 import { FaCheckCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import GenericTable from "../../components/GenericTable";
-import PaginationControls from "../../components/Pagination";
+import Pagination from "../../components/Pagination";
 import SearchInput from "../../components/SearchInput";
-
-type Trainer = {
-  _id: string;
-  name: string;
-  email: string;
-  status: boolean;
-  createdAt: Date;
-  gender?: string;
-  age?: number;
-  specialization?: string[];
-};
+import {type Trainer } from "../../types/trainerType";
 
 const TrainerList = () => {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
@@ -44,7 +32,7 @@ useEffect(() => {
       try {
         setLoading(true);
         const response = await adminTrainerService.fetchTrainers(page, search);
-        setTrainers(response.trainers || []);
+        setTrainers(response.data || []);
         setTotalPages(response.totalPages || 1);
       } catch (err) {
         console.error("Failed to fetch trainers", err);
@@ -56,7 +44,7 @@ useEffect(() => {
   }, [page, search]);
 
   const handleTrainerView = (trainer: Trainer) => {
-    navigate(`/admin/trainers/${trainer._id}`);
+    navigate(`/admin/trainers/${trainer.trainerId}`);
   };
 
   const handleModalOpen = (trainer: Trainer) => {
@@ -64,23 +52,35 @@ useEffect(() => {
     setShowModal(true);
   };
 
-  const handleConfirmAction = async () => {
-    if (!selectedTrainer) return;
-    try {
-      const newStatus = !selectedTrainer.status;
-      await adminTrainerService.updateTrainerStatus(selectedTrainer._id, newStatus);
-      const refreshed = await adminTrainerService.fetchTrainers(page, search);
-      setTrainers(refreshed.trainers);
-      setToastType("success");
-      setToastMessage(`Trainer ${newStatus ? "unblocked" : "blocked"} successfully`);
-      setShowModal(false);
-      setSelectedTrainer(null);
-    } catch (err) {
-      console.error(err);
-      setToastType("error");
-      setToastMessage("Failed to update trainer status");
-    }
-  };
+const handleConfirmAction = async () => {
+  if (!selectedTrainer) return;
+  
+  try {
+    const newStatus = !selectedTrainer.status;
+    
+    const result = await adminTrainerService.updateTrainerStatus(
+      selectedTrainer.trainerId, 
+      newStatus
+    );
+    setTrainers((prevTrainers) =>
+      prevTrainers.map((t) =>
+        t.trainerId === selectedTrainer.trainerId 
+          ? { ...t, status: newStatus } 
+          : t
+      )
+    );
+
+    setToastType("success");
+    setToastMessage(result.message || `Trainer ${newStatus ? "unblocked" : "blocked"} successfully`);
+    
+    setShowModal(false);
+    setSelectedTrainer(null);
+  } catch (err: any) {
+    const errorMsg = err.response?.data?.message || "Failed to update trainer status";
+    setToastType("error");
+    setToastMessage(errorMsg);
+  }
+};
 
   const handleVerifyTrainer = () => {
     navigate("/admin/verify-trainer");
@@ -96,7 +96,7 @@ useEffect(() => {
       <main className="ml-64 mt-16 p-6 bg-gray-100 min-h-screen">
         <div className="flex justify-between mb-6">
           <h2 className="text-3xl font-bold text-gray-800">Trainer List</h2>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search trainers..." />
+          <SearchInput value={search} onChange={setSearch} placeholder="Search trainers..." fullWidth={false} />
         </div>
         <div className="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
           <GenericTable<Trainer>
@@ -106,8 +106,13 @@ useEffect(() => {
             columns={[
               { header: "Name", accessor: "name" },
               { header: "Email", accessor: "email" },
-              { header: "Age", accessor: "age" },
-              { header: "Gender", accessor: "gender" },
+              {
+                  header: "Price",
+                  accessor: "pricePerSession",
+                  render: (trainer) =>
+                    trainer.pricePerSession ? `₹${trainer.pricePerSession}` : "NA",
+                  className: "text-center",
+                },
               {
                 header: "Action",
                 accessor: "action",
@@ -135,12 +140,11 @@ useEffect(() => {
               },
             ]}
           />
-          <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            onPrevious={() => setPage((prev) => Math.max(prev - 1, 1))}
-            onNext={() => setPage((prev) => prev + 1)}
-          />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
         </div>
         <div className="flex justify-end mt-4">
           <button
@@ -155,10 +159,10 @@ useEffect(() => {
         {selectedTrainer && (
           <Modal
             isVisible={showModal}
-            onClose={() => setShowModal(false)}
+            onCancel={() => setShowModal(false)}
             onConfirm={handleConfirmAction}
-            actionType={selectedTrainer.status ? "block" : "unblock"}
-            userName={selectedTrainer.name}
+            title={`Are you sure you want to ${selectedTrainer.status ? 'block' : 'unblock'} user`}
+            message={selectedTrainer.name}
           />
         )}
       </main>

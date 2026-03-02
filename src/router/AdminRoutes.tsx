@@ -4,7 +4,6 @@ import AdminLogin from '../pages/admin/Login';
 import UserList from '../pages/admin/UserList';
 import UserDetails from '../pages/admin/UserDetails';
 import TrainerList from '../pages/admin/TrainerList';
-import VerifySinglePage from '../pages/admin/VerifySinglePage';
 import TrainerDetails from '../pages/admin/TrainerDetails';
 import VerifyTrainer from '../pages/admin/VerifyTrainer';
 import AdminPublicRoute from '../components/AdminPublicRoute';
@@ -12,6 +11,7 @@ import AdminPrivateRoute from '../components/AdminPrivateRoute';
 import ServiceList from '../pages/admin/ServiceList';
 import AddService from '../pages/admin/AddService';
 import EditService from '../pages/admin/EditService';
+import AdminWallet from '../pages/admin/AdminWallet'
 const AdminRoutes = () => (
   <Routes>
     <Route path="login" element={<AdminPublicRoute><AdminLogin /></AdminPublicRoute>} />
@@ -21,10 +21,10 @@ const AdminRoutes = () => (
     <Route path="trainers" element={<AdminPrivateRoute><TrainerList /></AdminPrivateRoute>} />
     <Route path="trainers/:id" element={<AdminPrivateRoute><TrainerDetails /></AdminPrivateRoute>} />
     <Route path="verify-trainer" element={<AdminPrivateRoute><VerifyTrainer /></AdminPrivateRoute>} />
-    <Route path="verify-trainer/:id" element={<AdminPrivateRoute><VerifySinglePage /></AdminPrivateRoute>} />
     <Route path="services" element={<AdminPrivateRoute><ServiceList /></AdminPrivateRoute>} />
     <Route path="services/add" element={<AdminPrivateRoute><AddService /></AdminPrivateRoute>} />
-   <Route path="services/edit/:id" element={<AdminPrivateRoute><EditService /></AdminPrivateRoute>} />    
+   <Route path="services/edit/:id" element={<AdminPrivateRoute><EditService /></AdminPrivateRoute>} />  
+    <Route path="wallet" element={<AdminPrivateRoute><AdminWallet /></AdminPrivateRoute>} />
   </Routes>
 );
 

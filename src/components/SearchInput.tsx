@@ -1,22 +1,42 @@
 import React from "react";
-import { FiSearch } from "react-icons/fi";
+import { FaSearch } from "react-icons/fa";
 
 interface Props {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  fullWidth?: boolean;
 }
 
-const SearchInput: React.FC<Props> = ({ value, onChange, placeholder = "Search..." }) => {
+const SearchInput: React.FC<Props> = ({
+  value,
+  onChange,
+  placeholder = "Search...",
+  fullWidth = true,
+}) => {
   return (
-    <div className="relative w-full max-w-xs">
-      <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+    <div className={`relative ${fullWidth ? "w-full" : "max-w-xs"}`}>
+      <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+
       <input
         type="text"
         placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        className="
+          w-full
+          pl-11
+          pr-4
+          py-3
+          bg-gray-50
+          border-none
+          rounded-xl
+          text-sm
+          focus:outline-none
+          focus:ring-2
+          focus:ring-red-500
+          transition-all
+        "
       />
     </div>
   );

@@ -1,13 +1,14 @@
 interface TextInputProps {
-  label?: string;
+  label: string;
+  name:string;
   type?: string;
-  placeholder: string;
-  value: string;
+  placeholder?: string;
+  value?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
 }
 
-const TextInput: React.FC<TextInputProps> = ({label,type = "text",placeholder,value,onChange,error}) => (
+const TextInput: React.FC<TextInputProps> = ({label,name,type = "text",placeholder,value,onChange,error}) => (
   <div className="mb-4">
     {label && (
       <label className="block text-gray-700 font-medium mb-1">
@@ -15,6 +16,7 @@ const TextInput: React.FC<TextInputProps> = ({label,type = "text",placeholder,va
       </label>
     )}
     <input
+       name={name}
       type={type}
       placeholder={placeholder}
       value={value}
@@ -23,7 +25,11 @@ const TextInput: React.FC<TextInputProps> = ({label,type = "text",placeholder,va
         error ? "border-red-500" : "border-gray-300"
       }`}
     />
-    {error && <p className="text-red-600 text-sm text-left mt-1">{error}</p>}
+          {error && (
+        <p className="text-red-600 text-xs font-medium animate-pulse">
+          {error}
+        </p>
+      )}
   </div>
 );
 

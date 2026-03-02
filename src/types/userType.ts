@@ -1,9 +1,24 @@
+
 export type User = {
+  userId: string;     
   name: string;
   email: string;
-  _id: string;
+  role: string;        
   status: boolean;
   createdAt: Date;
   gender?: string;
   age?: number;
+  phone?: string | null;
+  address?: string | null;
+  profilePic?: string | null;
+  googleId?: string | null;
 };
+
+export interface UpdateUserProfileDTO {
+  name: string;
+  phone: string;
+  address: string;
+  gender?: string;
+  age?: number;
+  profilePic?: string
+}

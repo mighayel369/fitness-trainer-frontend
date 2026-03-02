@@ -1,206 +1,230 @@
-
-
-import UserNavBar from "../../layout/UserNavBar";
 import { useEffect, useState } from "react";
-import { FaMapMarkerAlt, FaStar } from "react-icons/fa";
-import axiosInstance from "../../api/AxiosInstance";
+import UserNavBar from "../../layout/UserNavBar";
+import { FaMapMarkerAlt, FaStar, FaChevronDown } from "react-icons/fa";
+import { userTrainerService } from "../../services/user/user.Trainer.service";
 import { useNavigate } from "react-router-dom";
-
-
+import Pagination from "../../components/Pagination";
+import SearchInput from "../../components/SearchInput";
+import { type Service } from "../../types/serviceType";
+import {type UserSideTrainer } from "../../types/trainerType";
+import { PublicService } from "../../services/public/public.service";
+type ServiceOption = {
+  serviceId: string;
+  name: string;
+};
 const TrainerListing = () => {
   const navigate = useNavigate();
   const [filters, setFilters] = useState({
     gender: "",
     availability: "",
     language: "",
-    category: ""
+    services: "",
+    sort: "rating"
   });
-  const [trainers, setTrainers] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [services, setServices] = useState<ServiceOption[]>([])
+  const [trainers, setTrainers] = useState<UserSideTrainer[]>([]);
   const [loading, setLoading] = useState(false);
-
-const DEFAULT_IMAGE =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
-  const handleTrainerView = (trainer:any) => {
-    navigate(`/trainer-details/${trainer._id}`);
-  };
-
-      useEffect(() => {
-      document.title = "Fitconnect | Trainer Listing"
-    }, []);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const DEFAULT_IMAGE = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+       let response = await PublicService.fetchPublicServices();
+    
+        if (response.data) {
+          const serviceData: ServiceOption[] = response.data.map(
+            (curr: Service): ServiceOption => ({
+             serviceId: curr.serviceId,
+              name: curr.name,
+            })
+          );
+          console.log(serviceData)
+          setServices(serviceData)
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      }
+    };
+    fetchServices();
+  }, []);
+  useEffect(() => {
+    document.title = "FitTribe | Expert Trainers";
+  }, [filters]);
 
   useEffect(() => {
     const fetchTrainers = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get(`/list-trainers?pageNO=${1}&search=${""}`,{withCredentials:true})
-        setTrainers(response.data.trainers || []);
+        const response = await userTrainerService.fetchTrainers(page, search, filters);
+        setTrainers(response.data || []);
+        setTotalPages(response.total || 1);
       } catch (err) {
         console.error("Failed to fetch trainers", err);
-        setTrainers([]);
       } finally {
         setLoading(false);
       }
     };
     fetchTrainers();
-  }, []);
-
+  }, [page, search, filters]);
+  useEffect(() => {
+    setPage(1);
+  }, [search, filters]);
   return (
-    <>
-
+    <div className="min-h-screen bg-[#F8FAFC]">
       <UserNavBar />
 
-      <div className="pt-24 px-6 bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-800">Available Trainers</h1>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white border border-gray-300 rounded-lg p-5 h-fit shadow-sm">
-              <h2 className="text-xl font-bold mb-4 text-gray-800">Filters</h2>
-
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-gray-700">Gender</h3>
-                {["Male", "Female"].map((gender) => (
-                  <label key={gender} className="block mb-2">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value={gender}
-                      checked={filters.gender === gender}
-                      onChange={(e) =>
-                        setFilters({ ...filters, gender: e.target.value })
-                      }
-                      className="mr-2"
-                    />{" "}
-                    {gender}
-                  </label>
-                ))}
-              </div>
-
-
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-gray-700">Availability</h3>
-                {["Morning", "Evening"].map((time) => (
-                  <label key={time} className="block mb-2">
-                    <input
-                      type="radio"
-                      name="availability"
-                      value={time}
-                      checked={filters.availability === time}
-                      onChange={(e) =>
-                        setFilters({ ...filters, availability: e.target.value })
-                      }
-                      className="mr-2"
-                    />{" "}
-                    {time}
-                  </label>
-                ))}
-              </div>
-
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-gray-700">Language</h3>
-                {["English", "Malayalam"].map((lang) => (
-                  <label key={lang} className="block mb-2">
-                    <input
-                      type="radio"
-                      name="language"
-                      value={lang}
-                      checked={filters.language === lang}
-                      onChange={(e) =>
-                        setFilters({ ...filters, language: e.target.value })
-                      }
-                      className="mr-2"
-                    />{" "}
-                    {lang}
-                  </label>
-                ))}
-              </div>
-
-              <div>
-                <h3 className="font-semibold mb-3 text-gray-700">Category</h3>
-                {["Yoga", "Cardio"].map((cat) => (
-                  <label key={cat} className="block mb-2">
-                    <input
-                      type="radio"
-                      name="category"
-                      value={cat}
-                      checked={filters.category === cat}
-                      onChange={(e) =>
-                        setFilters({ ...filters, category: e.target.value })
-                      }
-                      className="mr-2"
-                    />{" "}
-                    {cat}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="md:col-span-3">
-              {loading ? (
-                <p className="text-center text-gray-600">Loading trainers...</p>
-              ) : trainers.length === 0 ? (
-                <p className="text-center text-gray-600">No trainers found</p>
-              ) : (
-                <div className="grid lg:grid-cols-3 gap-6">
-                  {trainers.map((trainer) => (
-                    <div
-                      key={trainer._id}
-                      className="bg-gradient-to-br from-blue-50 to-teal-50 h-[350px] mt-8 mb-8 
-                      rounded-2xl shadow-md hover:shadow-xl transition 
-                      relative pt-16 flex flex-col items-center border border-blue-100"
-                    >
-                      <div className="absolute -top-12">
-                        <img
-                          src={trainer.profilePic || DEFAULT_IMAGE}
-                          alt={trainer.name}
-                          className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
-                        />
-                      </div>
-
-                      <div className="p-6 flex flex-col flex-grow text-center w-full">
-                        <h3 className="font-bold text-xl text-gray-900">{trainer.name}</h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {trainer.experience} Experience
-                        </p>
-
-                        <div className="flex items-center justify-center gap-1 text-yellow-500 mt-2">
-                          <FaStar className="w-4 h-4" />
-                          <span className="font-medium">
-                            {trainer.rating || "N/A"}
-                          </span>
-                        </div>
-
-                        <p className="flex items-center justify-center text-teal-600 text-sm gap-2 mt-2">
-                          <FaMapMarkerAlt className="w-4 h-4" />{" "}
-                          {trainer.address || "Location not available"}
-                        </p>
-
-                        <div className="flex gap-3 mt-6">
-                          <button
-                            onClick={() => handleTrainerView(trainer)}
-                            className="flex-1 border border-indigo-500 text-indigo-600 font-medium px-3 py-2 rounded-lg 
-                              hover:bg-indigo-50 hover:border-indigo-600 transition"
-                          >
-                            View Profile
-                          </button>
-                          <button className="flex-1 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-semibold px-3 py-2 rounded-lg 
-                            shadow-md hover:from-teal-600 hover:to-emerald-700 transition">
-                            Book Now
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="pt-40 pb-20 bg-white border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight">
+            Find Your <span className="text-red-600">Perfect Coach</span>
+          </h1>
+          <p className="text-gray-500 max-w-2xl mx-auto text-lg">
+            Transform your fitness journey with our world-class certified trainers tailored to your goals.
+          </p>
         </div>
       </div>
-    </>
+
+      <div className="max-w-7xl mx-auto px-6 -mt-10">
+
+        <div className="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-[200px] relative">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search by name or specialty..."
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {[
+              { label: "Gender", key: "gender", options: ["male", "female"] },
+              { label: "Services", key: "services", options: [...services] },
+              { label: "Availability", key: "availability", options: ["Morning", "Evening"] }
+            ].map((item) => (
+              <div key={item.key} className="relative group">
+                <select
+                  onChange={(e) => setFilters({ ...filters, [item.key]: e.target.value })}
+                  className="appearance-none pl-4 pr-10 py-3 bg-gray-50 border-none rounded-xl font-medium text-gray-700 cursor-pointer focus:ring-2 focus:ring-red-500 transition-all"
+                >
+                  <option value="">{item.label}</option>
+                  {item.options.map((opt: any) => {
+                    if (item.key === "services") {
+                      return (
+                        <option key={opt.serviceId} value={opt.serviceId}>
+                          {opt.name}
+                        </option>
+                      );
+                    }
+                    return (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    );
+                  })}
+                </select>
+                <FaChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs" />
+              </div>
+            ))}
+
+            <select
+              onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
+              className="pl-4 pr-10 py-3 bg-red-50 text-red-700 border-none rounded-xl font-bold cursor-pointer focus:ring-2 focus:ring-red-500 transition-all"
+            >
+              <option value="rating">Top Rated</option>
+              <option value="exp">Experience</option>
+            </select>
+          </div>
+        </div>
+
+
+        <div className="py-12">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map(i => <div key={i} className="h-80 bg-gray-200 animate-pulse rounded-3xl" />)}
+            </div>
+          ) : trainers.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-400 text-xl italic">No trainers match your current filters.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {trainers.map((trainer) => (
+                  <div
+                    key={trainer.trainerId}
+                    onClick={() => navigate(`/trainer-details/${trainer.trainerId}`)}
+                    className="group bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer flex flex-col h-full"
+                  >
+
+                    <div className="relative h-48 overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
+                        <span className="text-white font-bold text-sm">Click to view full profile</span>
+                      </div>
+                      <img
+                        src={trainer.profilePic || DEFAULT_IMAGE}
+                        alt={trainer.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      />
+                      <div className="absolute top-4 right-4 z-20 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                        <FaStar className="text-yellow-500 text-xs" />
+                        <span className="text-xs font-black text-gray-800">{trainer.rating || 0}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-6 flex flex-col flex-grow">
+                      <div className="mb-4">
+                        <h3 className="text-xl font-bold text-gray-900 group-hover:text-red-600 transition-colors">
+                          {trainer.name}
+                        </h3>
+                        <p className="text-sm font-semibold text-red-500 uppercase tracking-widest mt-1">
+                          {trainer.serviceName || "Fitness Coach"}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2 mb-6">
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                          <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
+                            <FaMapMarkerAlt className="text-[10px]" />
+                          </div>
+                          {trainer.address || "NA"}
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                          <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center italic font-bold text-[8px]">
+                            Yr
+                          </div>
+                          {trainer.experience || "0"} + Years Experience
+                        </div>
+                      </div>
+
+                      <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">Verified Professional</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/trainer-booking/${trainer.trainerId}`);
+                          }}
+                          className="bg-gray-900 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition-colors shadow-lg shadow-gray-200"
+                        >
+                          Book Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

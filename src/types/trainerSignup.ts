@@ -4,6 +4,7 @@ export interface Errors {
   password?: string;
   confirm?: string;
   gender?: string;
+  pricePerSession?:string;
   experience?: string;
   certificate?: string;
   specializations?: string;

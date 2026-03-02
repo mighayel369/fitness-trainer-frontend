@@ -1,15 +1,14 @@
 import type { JSX } from "react";
-import { useAppSelector } from "../redux/hooks";
-import { Navigate } from "react-router-dom"
-
+import { Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 const PrivateRoute=({children}:{children:JSX.Element})=>{
-const email=useAppSelector(state=>state.otp.Useremail)
+ const token = useSelector((state: any) => state.auth.accessToken)
 
-if(!email){
-    return <Navigate to='/signup' replace/>
-}
+    if(!token){
+        return <Navigate to='/login' replace />
+    }
 
-return children
+    return children
 }
 
 export default PrivateRoute

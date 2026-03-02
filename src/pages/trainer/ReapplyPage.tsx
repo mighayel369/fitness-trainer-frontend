@@ -1,261 +1,230 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
-import { trainerService } from "../../services/trainerService";
+import { trainerProfileService } from "../../services/trainer/trainer.Profile.service";
+import { trainerAuthService } from "../../services/trainer/trainer.Auth.service";
+import { PublicService } from "../../services/public/public.service";
+import { reapplyValidation, type ValidationErrors } from "../../validations/reapplyValidation";
+import { type ReapplyTrainerDTO } from "../../types/trainerType";
+import TextInput from "../../components/TextInput";
+import SelectField from "../../components/SelectField";
+import CheckboxGroup from "../../components/CheckboxGroup";
+import RadioGroup from "../../components/RadioGroup";
 import Toast from "../../components/Toast";
-import { reapplyValidation } from "../../validations/reapplyValidation";
-interface Errors {
-  name?: string;
-  gender?: string;
-  experience?: string;
-  specializations?: string;
-  languages?: string;
-}
-const specializationOptions = [
-  "Weight Training",
-  "Yoga",
-  "Zumba",
-  "Cardio",
-  "Nutrition",
-  "CrossFit",
-];
+type ServiceOption = {
+  serviceId: string;
+  name: string;
+  description: string;
+  servicePic: string;
+};
 
-const languageOptions = ["English", "Malayalam"];
+const languageOptions = import.meta.env.VITE_LANGUAGES?.split(",").map((lang: string) => ({ label: lang.trim(), value: lang.trim() })) || [];
+const experienceOptions = import.meta.env.VITE_EXPERIENCE?.split(",") || [];
 
 const ReapplyPage = () => {
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
-  const [experience, setExperience] = useState("");
-  const [gender, setGender] = useState("");
-  const [specializations, setSpecialization] = useState<string[]>([]);
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [certificate, setCertificate] = useState<File | null>(null);
-  const [certificateUrl, setCertificateUrl] = useState<string>("");
-  const [errors, setErrors] = useState<Errors>({});
-  const [toastMessage, setToastMessage] = useState("");
-
-useEffect(() => {
-  document.title = "FitConnect | Trainer Reapply";
-}, []);
+  const [formData, setFormData] = useState<ReapplyTrainerDTO>({
+    name: "",
+    gender: "",
+    experience: 0,
+    services: [],
+    languages: [],
+    pricePerSession:0,
+    certificate: null,
+  });
+  const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
+  const [certificateUrl, setCertificateUrl] = useState("");
+  const [errors, setErrors] = useState<ValidationErrors<ReapplyTrainerDTO>>({});
+  const [specializationOptions, setSpecializationOptions] = useState<ServiceOption[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchTrainerProfile = async () => {
+    document.title = "FitConnect | Trainer Reapply";
+    
+    const initData = async () => {
       try {
-        const res = await trainerService.getTrainerDetails();
-        const t = res?.trainer;
-
-        setName(t?.name || "");
-        setExperience(t?.experience || "");
-        setGender(t?.gender ? t.gender.charAt(0).toUpperCase() + t.gender.slice(1) : "");
-        setSpecialization(t?.specialization || []); 
-        setLanguages(t?.languages || []);
-        setCertificateUrl(t?.certificate || "");
+        const [servicesRes, profileRes] = await Promise.all([
+          PublicService.fetchPublicServices(),
+          trainerProfileService.getTrainerDetails()
+        ]);
+        
+        setSpecializationOptions(servicesRes.data);
+        
+        const t = profileRes.trainer;
+        setFormData({
+          name: t.name || "",
+          gender: t.gender || "",
+          experience: t.experience || 0,
+          services: t.services?.map((s: any) => s.serviceId || s.id) || [],
+          pricePerSession:t.pricePerSession||0,
+          languages: t.languages || [],
+          certificate: null,
+        });
+        setCertificateUrl(t.certificate);
       } catch (err) {
-        console.log(err);
+        console.error("Failed to load reapply data", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchTrainerProfile();
+    initData();
   }, []);
 
-  const handleSpecializationChange = (option: string) => {
-    setSpecialization((prev) =>
-      prev.includes(option)
-        ? prev.filter((item) => item !== option)
-        : [...prev, option]
-    );
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+        setFormData(prev => ({
+      ...prev,
+      [name]: name === "pricePerSession" || name === "experience" ? Number(value) : value
+    }));
   };
 
-  const handleLanguageChange = (option: string) => {
-    setLanguages((prev) =>
-      prev.includes(option)
-        ? prev.filter((item) => item !== option)
-        : [...prev, option]
-    );
+  const handleCheckboxChange = (field: "services" | "languages", value: string) => {
+    setFormData(prev => {
+      const current = prev[field] || [];
+      const updated = current.includes(value)
+        ? current.filter(x => x !== value)
+        : [...current, value];
+      return { ...prev, [field]: updated };
+    });
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setCertificate(e.target.files[0]);
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const validationErrors = reapplyValidation(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    try {
+    const data = new FormData();
+    
+    (Object.keys(formData) as Array<keyof ReapplyTrainerDTO>).forEach((key) => {
+      const value = formData[key];
+      
+      if (value === undefined || value === null) return;
+
+      if (Array.isArray(value)) {
+        value.forEach(val => data.append(`${key}[]`, val));
+      } else if (value instanceof File) {
+        data.append(key, value);
+      } else {
+        data.append(key, String(value)); 
+      }
+    });
+
+      let res=await trainerAuthService.reapplyTrainer(data);
+      if(res.success){
+        setToast({message:res.message,type:'success'})
+        setTimeout(() => navigate("/trainer/trainer-profile"), 2000);
+      }
+    } catch (err:any) {
+       const errorMsg = err.response?.data?.message
+      setToast({message:errorMsg,type:'error'})
     }
   };
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-
-  const newErrors = reapplyValidation({
-    name,
-    gender,
-    experience,
-    certificate: certificate ?? undefined, 
-    specializations,
-    languages
-  });
-
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return; 
-  }
-
-  const formData = new FormData();
-  formData.append("name", name);
-  formData.append("experience", experience);
-  formData.append("gender", gender);
-
-  specializations.forEach((s) => formData.append("specializations[]", s));
-  languages.forEach((l) => formData.append("languages[]", l));
-  if (certificate) {
-    formData.append("certificate", certificate);
-  }
-
-  try {
-    await trainerService.reapplyTrainer(formData);
-    setToastMessage("Reapply Success");
-    setTimeout(() => navigate("/trainer/trainer-profile"), 2000);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
+  if (loading) return <div className="p-10 ml-72">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <TrainerTopBar />
       <TrainerSideBar />
 
-      <main className="ml-72 pt-24 px-10 mt-5">
-        {toastMessage && (
-          <Toast
-            message={toastMessage}
-            type="success"
-            onClose={() => setToastMessage("")}
-          />
-        )}
-        <h1 className="text-4xl font-bold mb-10 text-gray-800">
-          Reapply As Trainer
-        </h1>
-
+      <main className="ml-72 pt-24 px-10 pb-12">
+                {toast && (
+                  <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                  />
+                )}
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 max-w-3xl bg-white p-8 rounded-2xl shadow-lg"
+          className="max-w-3xl bg-white p-8 rounded-2xl shadow-sm border border-gray-100 space-y-6"
         >
+          <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Reapply</h1>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-2 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-          </div>
+          <TextInput
+            label="Name"
+            name='name'
+            placeholder="Enter name"
+            value={formData.name}
+            onChange={handleInputChange}
+            error={errors.name}
+          />
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700">
-              Certificate
-            </label>
+          <RadioGroup
+            label="Gender"
+            name="gender"
+            options={["male", "female", "other"]}
+            value={formData.gender}
+            onChange={handleInputChange}
+            error={errors.gender}
+          />
+
+          <SelectField
+            label="Experience"
+            name='experience'
+            value={formData.experience.toString()}
+            onChange={handleInputChange}
+            options={experienceOptions}
+            error={errors.experience}
+          />
+
+          <CheckboxGroup
+            label="Services"
+            options={specializationOptions.map(s => ({
+              label: s.name,
+              value: s.serviceId,
+            }))}
+            selected={formData.services}
+            onChange={(id) => handleCheckboxChange("services", id)}
+            error={errors.services}
+          />
+
+          <CheckboxGroup
+            label="Languages"
+            options={languageOptions}
+            selected={formData.languages}
+            onChange={(val) => handleCheckboxChange("languages", val)}
+            error={errors.languages}
+          />
+
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-gray-700">Certification</label>
             {certificateUrl && (
-              <div className="mt-2">
-                <a
-                  href={certificateUrl}
-                  target="_blank"
+              <div className="mb-2">
+                <a 
+                  id="existing-cert"
+                  href={certificateUrl} 
+                  target="_blank" 
                   rel="noreferrer"
-                  className="text-blue-600 underline"
+                  className="text-sm text-blue-600 hover:underline flex items-center gap-2"
                 >
-                  View current certificate
+                  📄 View Current Certificate
                 </a>
               </div>
             )}
-            <input
-              type="file"
-              onChange={handleFileChange}
-              className="mt-2 w-full text-sm text-gray-700 border border-gray-300 rounded-lg cursor-pointer"
+            <input 
+              type="file" 
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              onChange={(e) => setFormData({ ...formData, certificate: e.target.files ? e.target.files[0] : null })} 
             />
+            {errors.certificate && <p className="text-red-500 text-xs">{errors.certificate}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700">
-              Specialization
-            </label>
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              {specializationOptions.map((option) => (
-                <label key={option} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={specializations.includes(option)}
-                    onChange={() => handleSpecializationChange(option)}
-                  />
-                  {option}
-                </label>
-              ))}
-            </div>
-             {errors.specializations && <p className="text-red-500 text-sm mt-1">{errors.specializations}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700">
-              Languages
-            </label>
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              {languageOptions.map((option) => (
-                <label key={option} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={languages.includes(option)}
-                    onChange={() => handleLanguageChange(option)}
-                  />
-                  {option}
-                </label>
-              ))}
-            </div>
-             {errors.languages && <p className="text-red-500 text-sm mt-1">{errors.languages}</p>}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">
-                Experience
-              </label>
-              <input
-                type="text" 
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                className="mt-2 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-             {errors.experience && <p className="text-red-500 text-sm mt-1">{errors.experience}</p>}
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">
-                Gender
-              </label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="mt-2 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="">Select gender</option>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
-              </select>
-            </div>
-             {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
-          </div>
-
-          <div className="pt-4">
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl shadow hover:bg-blue-700 transition"
-            >
-              Reapply
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg shadow-blue-200"
+          >
+            Submit Reapplication
+          </button>
         </form>
       </main>
     </div>

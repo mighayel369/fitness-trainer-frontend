@@ -10,15 +10,12 @@ import Modal from "../../components/Modal";
 import GenericTable from "../../components/GenericTable";
 import SearchInput from "../../components/SearchInput";
 import Pagination from "../../components/Pagination";
-
-import { adminUserService } from "../../services/adminUserService";
+import { adminUserService } from "../../services/admin/admin.User.service";
 
 type User = {
-  _id: string;
+  userId: string;
   name: string;
   email: string;
-  age?: number;
-  gender?: string;
   status: boolean;
 };
 
@@ -41,8 +38,8 @@ useEffect(() => {
     try {
       setLoading(true);
       const res = await adminUserService.fetchUsers(page, search);
-      setUsers(res.users || []);
-      setTotalPages(res.totalPages || 1);
+      setUsers(res.data || []);
+      setTotalPages(res.total || 1);
     } catch (err) {
       console.error("Failed to fetch users", err);
     } finally {
@@ -55,7 +52,7 @@ useEffect(() => {
   }, [page, search]);
 
   const handleUserView = (user: User) => {
-    navigate(`/admin/users/${user._id}`);
+    navigate(`/admin/users/${user.userId}`);
   };
 
   const handleModalOpen = (user: User) => {
@@ -63,22 +60,25 @@ useEffect(() => {
     setShowModal(true);
   };
 
-  const handleConfirmAction = async () => {
-    if (!selectedUser) return;
-    try {
-      const newStatus = !selectedUser.status;
-      await adminUserService.updateUserStatus(selectedUser._id, newStatus);
-      fetchUsers();
-      setToastType("success");
-      setToastMessage(`User ${selectedUser.status ? "blocked" : "unblocked"} successfully`);
-      setShowModal(false);
-      setSelectedUser(null);
-    } catch (err) {
-      console.error(err);
-      setToastType("error");
-      setToastMessage("Failed to update user status");
-    }
-  };
+const handleConfirmAction = async () => {
+  if (!selectedUser) return;
+  
+  const targetId = selectedUser.userId;
+  const targetStatus = !selectedUser.status;
+  try {
+    let res=await adminUserService.updateUserStatus(targetId, targetStatus);
+      setUsers(prev => prev.map(u => u.userId === targetId ? { ...u, status: targetStatus } : u));
+  setShowModal(false);
+    setToastType("success");
+    setToastMessage(res.message);
+  } catch (error:any) {
+    const message = error.response?.data?.message
+    setToastType("error");
+    setToastMessage(message||"Server error. Reverting changes.");
+  } finally {
+    setSelectedUser(null);
+  }
+};
 
   return (
     <>
@@ -90,7 +90,7 @@ useEffect(() => {
       <main className="ml-64 mt-16 p-6 bg-gray-100 min-h-screen relative">
         <div className="flex justify-between mb-6 items-center">
           <h2 className="text-3xl font-bold text-gray-800">User List</h2>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search users..." />
+          <SearchInput value={search} onChange={setSearch} placeholder="Search users..." fullWidth={false} />
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-md overflow-x-auto">
@@ -101,8 +101,6 @@ useEffect(() => {
             columns={[
               { header: "Name", accessor: "name" },
               { header: "Email", accessor: "email" },
-              { header: "Age", accessor: "age" },
-              { header: "Gender", accessor: "gender" },
               {
                 header: "Action",
                 accessor: "action",
@@ -131,21 +129,20 @@ useEffect(() => {
             ]}
           />
 
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPrevious={() => setPage((prev) => Math.max(prev - 1, 1))}
-            onNext={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-          />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
         </div>
 
         {selectedUser && (
           <Modal
             isVisible={showModal}
-            onClose={() => setShowModal(false)}
+            onCancel={() => setShowModal(false)}
             onConfirm={handleConfirmAction}
-            actionType={selectedUser.status ? "block" : "unblock"}
-            userName={selectedUser.name}
+            message={`Are you sure you want to ${selectedUser.status ? 'block' : 'unblock'} user`}
+            title={selectedUser.name}
           />
         )}
       </main>
