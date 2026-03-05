@@ -2,7 +2,8 @@ import axios from "axios";
 import { store } from "../redux/store";
 import { setAccessToken, clearAccessToken } from "../redux/slices/authSlice";
 import { ERROR_MESSAGES } from "../constants/ErrorMessage";
-import { PublicService } from "../services/public/public.service";
+import { AuthService } from "../services/auth-service";
+import { API_ENDPOINTS } from "./endPoints";
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
@@ -28,12 +29,12 @@ axiosInstance.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes("/refresh-token")
+      !originalRequest.url.includes(API_ENDPOINTS.AUTH.REFRESH_TOKEN)
     ) {
       originalRequest._retry = true;
 
       try {
-        const res = await PublicService.refreshAccessToken()
+        const res = await AuthService.RefreshAccessToken()
         const accessToken = res.accessToken
         if (accessToken) {
           store.dispatch(setAccessToken(accessToken));

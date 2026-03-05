@@ -7,10 +7,6 @@ export const userBookingService={
     });
     return data;
   },
-    createBookingWithWallet: async (payload: any) => {
-    const { data } = await axiosInstance.post(API_ENDPOINTS.USER.BOOKING_WALLET, payload);
-    return data;
-  },
   createOnlinePaymentOrder:async(payload:any)=>{
     const {data}=await axiosInstance.post(API_ENDPOINTS.USER.CREATE_ORDER,payload)
     return data
