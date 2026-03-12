@@ -17,21 +17,26 @@ import {
   FaLock
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { userProfileService } from "../../services/user/user.Profile.service";
-import { userWalletService } from "../../services/user/user.Wallet.service";
+
 import Toast from "../../components/Toast";
-import { type ValidationErrors } from "../../validations/userProfileValidation";
+import {type ValidationErrors } from "../../validations/ValidationErrors";
 import { type changePassword } from "../../types/changePasswordType";
 import { validatePasswordChange } from "../../validations/validatePassword";
-const DEFAULT_IMAGE = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+import DEFAULT_IMAGE from '../../assets/default image.png'
+import { UserService } from "../../services/user-service";
+import { WalletService } from "../../services/wallet-service";
+import { AuthService } from "../../services/auth-service";
+import type { User } from "../../types/userType";
 
 const UserProfile: React.FC = () => {
   const navigate = useNavigate();
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("wallet");
-  const [wallet, setWallet] = useState<any>(null);
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [user, setUser] = useState<User|null>(null);
+  const [activeTab, setActiveTab] = useState<string>("wallet");
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+   const [walletTransaction, setWalletTransactions] = useState<any[]>([]);
+   const [activeHoldCount, setActiveHoldCount] = useState<number>(0);
   const [walletLoading, setWalletLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<"success" | "error">("success");
@@ -41,8 +46,8 @@ const UserProfile: React.FC = () => {
     newPassword: "",
     confirmPassword: ""
   });
-  const [passwordLoading, setPasswordLoading] = useState(false);
-  const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState<boolean>(false);
+  const [isPasswordOpen, setIsPasswordOpen] = useState<boolean>(false);
   const walletCoulmns = UserWalletColumns(navigate)
   useEffect(() => {
     document.title = "FitTribe | My Account";
@@ -57,7 +62,7 @@ const UserProfile: React.FC = () => {
 
   const getUserData = async () => {
     try {
-      const res = await userProfileService.fetchUserProfile();
+      const res = await UserService.GetFullProfile();
       if (res.success) setUser(res.userData);
     } catch (error) {
       console.error("Error fetching user data", error);
@@ -67,11 +72,13 @@ const UserProfile: React.FC = () => {
   const fetchWalletData = async () => {
     try {
       setWalletLoading(true);
-      const res = await userWalletService.fetchUserWallet(page, 5);
+      const res = await WalletService.GetOwnerWallet(page, 5);
       if (res?.success) {
-        const walletDetails = res.data[0];
-        setWallet(walletDetails);
-        setTotalPages(res.total);
+        const {balance,data,total,activeHoldCount}=res.wallet
+        setWalletTransactions(data);
+        setTotalPages(total);
+        setWalletBalance(balance)
+        setActiveHoldCount(activeHoldCount)
       }
     } catch (error) {
       console.error("Error fetching wallet data", error);
@@ -85,18 +92,17 @@ const UserProfile: React.FC = () => {
     if (!file) return;
     try {
       const formData = new FormData();
-      formData.append("image", file);
-      const res = await userProfileService.updateUserProfilePic(formData);
+      formData.append("profilePic", file);
+      const res = await UserService.UpdateProfilePicture(formData);
       if (res.success) {
         setUser((prev: any) => ({ ...prev, profilePic: res.data?.imageUrl }));
         setToastType("success");
         setToastMessage(res.message);
-      } else {
-        setToastType("error");
-        setToastMessage(res.message || "Something went wrong try again!");
-      }
-    } catch (err) {
-      console.error(err);
+      } 
+    } catch (err:any) {
+      let errMesg=err.response?.data?.message
+      setToastMessage(errMesg)
+      setToastType('error')
     }
   };
 
@@ -111,7 +117,7 @@ const UserProfile: React.FC = () => {
     try {
       setPasswordLoading(true);
 
-      const res = await userProfileService.changePassword({
+      const res = await AuthService.ChangePassword({
         oldPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });
@@ -169,7 +175,7 @@ const UserProfile: React.FC = () => {
 
             <div className="bg-gray-900 text-white rounded-3xl p-6 min-w-[200px] text-center shadow-2xl shadow-gray-200">
               <p className="text-xs font-bold text-gray-400 uppercase mb-2">Wallet Balance</p>
-              <h2 className="text-3xl font-black">₹{wallet?.balance ?? 0}</h2>
+              <h2 className="text-3xl font-black">₹{walletBalance}</h2>
               <button onClick={() => setActiveTab("wallet")} className="mt-3 text-[10px] font-bold text-red-500 flex items-center gap-2 mx-auto hover:text-red-400">
                 VIEW TRANSACTIONS <FaArrowRight />
               </button>
@@ -205,7 +211,7 @@ const UserProfile: React.FC = () => {
                 <div className="bg-white border border-gray-100 p-6 rounded-[2rem] shadow-sm">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Holds</p>
                   <h4 className="text-3xl font-black mt-1 text-orange-500">
-                    {wallet?.holds?.filter((h: any) => h.status === 'active').length || 0}
+                    {activeHoldCount}
                   </h4>
                   <p className="text-[10px] text-gray-400 mt-1 italic">Funds locked for pending sessions</p>
                 </div>
@@ -221,7 +227,7 @@ const UserProfile: React.FC = () => {
 
                 <div className="bg-white border border-gray-100 rounded-[2rem] overflow-hidden shadow-sm">
                   <GenericTable
-                    data={wallet?.transactions || []}
+                    data={walletTransaction}
                     columns={walletCoulmns}
                     page={page}
                     loading={walletLoading}

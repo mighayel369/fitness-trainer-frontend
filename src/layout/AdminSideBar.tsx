@@ -6,7 +6,7 @@ const AdminSideBar = () => {
       <Link to="/admin" className="hover:text-yellow-400">Dashboard</Link>
       <Link to="/admin/trainers" className="hover:text-yellow-400">Trainers</Link>
       <Link to="/admin/users" className="hover:text-yellow-400">Users</Link>
-      <Link to="/admin/services" className="hover:text-yellow-400">Services</Link>
+      <Link to="/admin/programs" className="hover:text-yellow-400">Programs</Link>
       <Link to="/admin/wallet" className="hover:text-yellow-400">Wallet</Link>
     </aside>
   )

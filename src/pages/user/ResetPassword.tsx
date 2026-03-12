@@ -1,11 +1,11 @@
 import React, { useState, useEffect, type FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { userAuthService } from "../../services/user/user.Auth.service";
 import bgpic from "../../assets/reset-password.webp";
 import LogoHeader from "../../assets/logo.jpg";
 import PasswordInput from "../../components/PasswordInput";
 import SubmitButton from "../../components/SubmitButton";
 import BackgroundImageWrapper from "../../components/BackgroundImage";
+import { AuthService } from "../../services/auth-service";
 
 
 const ResetPassword: React.FC = () => {
@@ -37,16 +37,14 @@ const ResetPassword: React.FC = () => {
         return;
       }
 
-      const response = await userAuthService.resetPassword(token, password);
+      const response = await AuthService.ResetPassword(token, password);
 
       if (response.success) {
         const role = response.role;
         navigate(role === "trainer" ? "/trainer/login" : "/login", {
           state: { message: response.message || "Password updated successfully! Please log in." }
         });
-      } else {
-        setError(response.message || "Failed to reset password.");
-      }
+      } 
     } catch (err: any) {
       const message = err.response?.data?.message
       setError(message || "Something went wrong. Please try again.");

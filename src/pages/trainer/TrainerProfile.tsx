@@ -15,11 +15,10 @@ import {
   FaWallet
 } from "react-icons/fa";
 import { MdWork } from "react-icons/md";
-import { trainerProfileService } from "../../services/trainer/trainer.Profile.service";
-import { trainerWalletService } from "../../services/trainer/trainer.Wallet.service";
+import { WalletService } from "../../services/wallet-service";
+import { TrainerService } from "../../services/trainer-service";
+import DEFAULT_IMAGE from '../../assets/default image.png'
 
-const DEFAULT_IMAGE =
-  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const TrainerProfile = () => {
   const navigate = useNavigate()
@@ -27,11 +26,13 @@ const TrainerProfile = () => {
   const [activeTab, setActiveTab] = useState<"wallet" | "settings">("wallet");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [wallet, setWallet] = useState<any>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletTransaction, setWalletTransactions] = useState<any[]>([]);
+  const [activeHoldCount, setActiveHoldCount] = useState<number>(0);
   const [walletLoading, setWalletLoading] = useState(false);
   const walletColumns = TrainerWalletColumns(navigate);
   useEffect(() => {
-    document.title = "FitConnect | Trainer Profile";
+    document.title = "FitTribe | Profile";
   }, []);
 
   const handleReapply = () => {
@@ -43,7 +44,7 @@ const TrainerProfile = () => {
   useEffect(() => {
     const fetchTrainerProfile = async () => {
       try {
-        const res = await trainerProfileService.getTrainerDetails();
+        const res = await TrainerService.FullProfile();
         console.log(res);
         setTrainer(res?.trainer || null);
       } catch (err) {
@@ -62,11 +63,13 @@ const TrainerProfile = () => {
   const fetchWallet = async () => {
     try {
       setWalletLoading(true);
-      const res = await trainerWalletService.fetchTrainerWallet(page, 5);
+      const res = await WalletService.GetOwnerWallet(page, 5);
       if (res?.success) {
-        const walletData = res.data[0];
-        setWallet(walletData);
-        setTotalPages(res.total);
+        const {balance,data,total,activeHoldCount}=res.wallet
+        setWalletTransactions(data);
+        setTotalPages(total);
+        setWalletBalance(balance)
+        setActiveHoldCount(activeHoldCount)
       }
     } catch (err) {
       console.error("Failed to fetch trainer wallet", err);
@@ -83,9 +86,9 @@ const TrainerProfile = () => {
 
     try {
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("profilePic", file);
 
-      const res = await trainerProfileService.updateTrainerProfilePic(formData)
+      const res = await TrainerService.UpdateProfilePic(formData)
       console.log(res)
       setTrainer((prev: any) => ({
         ...prev,
@@ -195,10 +198,10 @@ const TrainerProfile = () => {
                 />
                 <InfoItem
                   icon={<FaDumbbell className="text-blue-600 text-xl" />}
-                  label="Services"
+                  label="Programs"
                   value={
-                    trainer.services?.length
-                      ? trainer.services.map((s: any) => s.name).join(", ")
+                    trainer.programs?.length
+                      ? trainer.programs.map((s: any) => s.name).join(", ")
                       : "Not added"
                   }
                 />
@@ -270,7 +273,7 @@ const TrainerProfile = () => {
                     </p>
                     <div className="flex items-baseline gap-1">
                       <span className="text-sm font-medium text-gray-400">₹</span>
-                      <h2 className="text-3xl font-black">{wallet?.balance ?? 0}</h2>
+                      <h2 className="text-3xl font-black">{walletBalance}</h2>
                     </div>
                     <div className="mt-3 flex items-center gap-2 text-green-400 text-[10px] font-bold">
                       <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
@@ -286,12 +289,12 @@ const TrainerProfile = () => {
                     Earnings Log
                   </h3>
                   <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">
-                    {wallet?.transactions?.length || 0} Transactions
+                    {walletTransaction.length} Transactions
                   </span>
                 </div>
 
                 <GenericTable
-                  data={wallet?.transactions || []}
+                  data={walletTransaction}
                   columns={walletColumns}
                   page={page}
                   loading={walletLoading}

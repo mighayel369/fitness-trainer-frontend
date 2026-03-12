@@ -1,3 +1,21 @@
+export type TrainerSignupDTO = {
+  name: string;
+  email: string;
+  password?: string;
+  confirm?: string;
+  gender: string;
+  experience: number;
+  pricePerSession: number;
+  programs: string[];
+  languages: string[];
+  certificate?: File | null;
+};
+
+export type TrainerLoginDTO = {
+  email: string;
+  password?: string;
+};
+
 
 export interface Trainer {
   trainerId: string; 
@@ -12,12 +30,12 @@ export interface UserSideTrainer extends Trainer {
   rating: number;
   experience: number;
   address: string | null;
-  serviceName: string; 
+  programs: string; 
 }
 
 export interface PendingTrainer extends Omit<Trainer,'status'|'email'>{
   gender: string;
-  services: string[];
+  programs: string[];
 }
 
 export interface AdminTrainerDetails extends Trainer {
@@ -26,7 +44,7 @@ export interface AdminTrainerDetails extends Trainer {
   certificate: string;
   joined: string;
   gender: string;
-  services: {serviceId:string,name:string}[]; 
+  programs: {programId:string,name:string}[]; 
   role: string;
   experience: number;
   bio?: string | null;
@@ -50,14 +68,14 @@ export interface UpdateTrainerProfileDTO {
   phone: string;
   address: string;
   pricePerSession: number;
-  services: string[]; 
+  programs: string[]; 
 }
 
 export interface ReapplyTrainerDTO {
   name: string;
   gender: string;
   experience: number;
-  services: string[]; 
+  programs: string[]; 
   languages: string[];
   pricePerSession:number;
   certificate?: File | null;
@@ -74,7 +92,7 @@ export interface TrainerDetails{
     certificate: string;
     joined: string;
     gender: string;
-    services: { serviceId: string; name: string }[];
+    programs: { programId: string; name: string }[];
     role: string;
     experience: number;
     languages:string[];

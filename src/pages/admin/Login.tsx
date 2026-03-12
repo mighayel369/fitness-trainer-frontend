@@ -2,31 +2,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../redux/hooks';
-
-import { loginValidate } from '../../validations/loginValidate';
+import {type AdminLoginDTO } from '../../types/adminType';
 import { setAccessToken } from '../../redux/slices/authSlice';
-import { adminAuthService } from '../../services/admin/admin.Auth.service';
-
+import { AuthService } from '../../services/auth-service';
 import TextInput from '../../components/TextInput';
 import PasswordInput from '../../components/PasswordInput';
 import SubmitButton from '../../components/SubmitButton';
 import BackgroundImageWrapper from '../../components/BackgroundImage';
 import { FaShieldAlt } from 'react-icons/fa';
-
 import adminLoginPic from '../../assets/admin-loginPic.webp';
 import LogoHeader from '../../assets/logo.jpg';
+import type { ValidationErrors } from '../../validations/ValidationErrors';
+import { adminLoginValidation } from '../../validations/adminLoginValidation';
 
-interface Errors {
-  email?: string;
-  password?: string;
-}
 
 const AdminLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
-  const [loading, setLoading] = useState(false);
-  const [generalError, setGeneralError] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [errors, setErrors] = useState<ValidationErrors<AdminLoginDTO>>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [generalError, setGeneralError] = useState<string>('');
   
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -40,7 +35,7 @@ const AdminLogin: React.FC = () => {
     setErrors({});
     setGeneralError('');
     
-    const newErrors = loginValidate({ email, password });
+    const newErrors = adminLoginValidation({ email, password });
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -48,10 +43,14 @@ const AdminLogin: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await adminAuthService.loginAdmin(email, password);
+      const response = await AuthService.LoginAdmin({email, password});
       if (response.success) {
         dispatch(setAccessToken(response.accessToken));
-        navigate('/admin', { replace: true });
+        navigate('/admin',{
+          state:{
+            message:response.message
+          }
+        });
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Unauthorized access attempt.";
@@ -95,6 +94,7 @@ const AdminLogin: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <TextInput
+              name='email'
               label="Administrative Email"
               type="email"
               placeholder="admin@fittribe.com"

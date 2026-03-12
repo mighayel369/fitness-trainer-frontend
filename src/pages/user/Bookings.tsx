@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 import Pagination from "../../components/Pagination";
 import SearchInput from "../../components/SearchInput";
 import GenericTable from "../../components/GenericTable";
-import { userBookingService } from "../../services/user/user.Booking.service";
 import { FaCalendarAlt } from "react-icons/fa";
 import {type Booking } from "../../types/bookingType";
+import { BookingService } from "../../services/booking-service";
+import Toast from "../../components/Toast";
 
 const Bookings = () => {
   const navigate = useNavigate();
@@ -15,21 +16,24 @@ const Bookings = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+ 
 
   useEffect(() => {
-    document.title = "Vitalic | My Bookings";
+    document.title = "FitTribe | My Bookings";
     fetchBookings();
   }, [page, search]);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const res = await userBookingService.fetchUserBookings(page,search)
+      const res = await BookingService.ClientBookingHistory(page,search)
       console.log(res)
       setBookings(res.bookingData);
       setTotalPages(res.totalPages);
-    } catch (err) {
-      console.error("Failed to fetch bookings", err);
+    } catch (err:any) {
+            let errMesg=err.response?.data?.message
+      setToast({message:errMesg,type:'error'})
     } finally {
       setLoading(false);
     }
@@ -50,6 +54,13 @@ const Bookings = () => {
       <UserNavBar />
 
       <main className="pt-32 pb-20 max-w-7xl mx-auto px-6">
+                      {toast && (
+                <Toast
+                  message={toast.message}
+                  type={toast.type}
+                  onClose={() => setToast(null)}
+                />
+              )}
         <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-10">
           <div>
             <h1 className="text-4xl font-black text-gray-900 tracking-tighter uppercase leading-none">
@@ -101,9 +112,9 @@ const Bookings = () => {
                 ),
               },
               {
-                header: "Service",
-                accessor: "service",
-                render: (row) => <span className="text-gray-600 font-medium">{row.bookedService}</span>
+                header: "Program",
+                accessor: "program",
+                render: (row) => <span className="text-gray-600 font-medium">{row.bookedProgram}</span>
               },
               {
                 header: "Date",

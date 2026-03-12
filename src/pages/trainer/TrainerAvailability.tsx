@@ -6,8 +6,7 @@ import { HiOutlineX } from "react-icons/hi";
 import Toast from "../../components/Toast";
 import { generateTimes } from "../../helperFunctions/generateTimes";
 import TimePicker from "../../components/TimePicker";
-import { trainerSlotService } from "../../services/trainer/trainer.Slot.service";
-
+import { SlotService } from "../../services/slot-service";
 const daysMap = [
   { label: "Sun", key: "sunday" },
   { label: "Mon", key: "monday" },
@@ -52,12 +51,14 @@ const TrainerAvailability = () => {
     document.title = "FitTribe | Availability";
     async function fetchSlot() {
       try {
-        const res = await trainerSlotService.getTrainerSlots();
+        const res = await SlotService.TrainerSchedules()
         if (res.data?.weeklyAvailability) {
           setAvailability(res.data.weeklyAvailability);
         }
-      } catch (err) {
-        console.error("Error fetching slots:", err);
+      } catch (err:any) {
+       let errMesg=err.response?.data?.message
+        setToastType("error");
+        setToastMessage(errMesg);
       } finally {
         setTimeout(() => { isInitialLoad.current = false; }, 100);
       }
@@ -70,12 +71,13 @@ const TrainerAvailability = () => {
 
     const timer = setTimeout(async () => {
       try {
-        await trainerSlotService.updateWeeklySlots(availability);
+        let res=await SlotService.ModifyTrainerSchedules(availability);
         setToastType("success");
-        setToastMessage("Availability updated");
-      } catch (err) {
+        setToastMessage(res.message);
+      } catch (err:any) {
+        let errMesg=err.response?.data?.message
         setToastType("error");
-        setToastMessage("Failed to update availability");
+        setToastMessage(errMesg);
       }
     }, 800);
 

@@ -3,7 +3,7 @@ import { IoIosNotifications } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { trainerAuthService } from "../services/trainer/trainer.Auth.service";
+import { AuthService } from "../services/auth-service";
 import { clearAccessToken } from "../redux/slices/authSlice";
 
 
@@ -13,7 +13,7 @@ const TrainerTopBar = () => {
   const dispatch = useDispatch();
 
   const handleLogout = async() => {
-    await trainerAuthService.clearRefreshToken()
+    await AuthService.Logout()
     dispatch(clearAccessToken());
     navigate('/trainer/login');
   }

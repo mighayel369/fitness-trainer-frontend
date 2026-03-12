@@ -1,3 +1,15 @@
+export interface UserSignupDTO {
+  name: string;
+  email: string;
+  password?: string;
+  confirm?: string;
+}
+
+export interface UserLoginDTO {
+  email: string;
+  password?: string;
+}
+
 
 export type User = {
   userId: string;     

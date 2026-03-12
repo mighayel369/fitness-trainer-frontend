@@ -3,18 +3,18 @@ import { useEffect, useState } from "react";
 import { Calendar, Clock, IndianRupee, ArrowLeft, MessageSquare, CheckCircle, XCircle } from "lucide-react";
 import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
-import { trainerBookingervice } from "../../services/trainer/trainer.Booking.service";
+import { BookingService } from "../../services/booking-service";
 import { type TrainerBookingDetails } from "../../types/bookingType";
 import Loading from "../../components/Loading";
 import Modal from "../../components/Modal";
 import Toast from "../../components/Toast";
 const BOOKING_ACTION = {
     booking: {
-        accept: (id: string) => trainerBookingervice.acceptPendingBooking(id),
-       reject: (id: string, reason?: string) => trainerBookingervice.rejectPendingBooking(id, reason),    },
+        accept: (id: string) => BookingService.PendingRequestAccept(id),
+       reject: (id: string, reason: string) => BookingService.PendingRequestReject(id, reason),    },
     reschedule: {
-        accept: (id: string) => trainerBookingervice.handleRescheduleRequest(id, "approve"),
-        reject: (id: string) => trainerBookingervice.handleRescheduleRequest(id, "reject"),
+        accept: (id: string) => BookingService.ApproveReschedule(id),
+        reject: (id: string,reason:string) => BookingService.RejectReschedule(id,reason),
     },
 };
 
@@ -26,7 +26,7 @@ const BookingDetails = () => {
     const [showModal, setShowModal] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
     useEffect(() => {
-        document.title = "FitTribe | Booking Details";
+        document.title = "FitTribe | Booking Summary";
         fetchBookingDetails();
     }, [id]);
     const [pendingAction, setPendingAction] = useState<{
@@ -43,22 +43,34 @@ const BookingDetails = () => {
 const handleConfirmAction = async (reason?: string) => {
     if (!pendingAction || !id) return;
 
+    if (pendingAction.type === 'reject' && (!reason || reason.trim().length < 5)) {
+        setShowModal(false);
+        setToast({ 
+            message: "Please provide a valid reason (at least 5 characters) for rejection.", 
+            type: "error" 
+        });
+        return;
+    }
+
     try {
         setLoading(true);
         const serviceFn = BOOKING_ACTION[pendingAction.context][pendingAction.type];
  
-        const res = await serviceFn(id, reason);
+        const res = await serviceFn(id, reason || "");
 
         if (res.success) {
             await fetchBookingDetails();
             setToast({ message: res.message, type: "success" });
+            setShowModal(false); 
+            setPendingAction(null);
         }
     } catch (err: any) {
-        console.error("Action failed", err);
-        setToast({ message: "Action failed. Please try again.", type: "error" });
+        console.error(err);
+        setToast({ 
+            message: err.response?.data?.message || "An error occurred while processing the request.", 
+            type: "error" 
+        });
     } finally {
-        setShowModal(false);
-        setPendingAction(null);
         setLoading(false);
     }
 };
@@ -66,7 +78,7 @@ const handleConfirmAction = async (reason?: string) => {
     const fetchBookingDetails = async () => {
         if (!id) return;
         try {
-            const res = await trainerBookingervice.fetchBookingDetails(id);
+            const res = await BookingService.TrainerSessionDetails(id);
             if (res.success) setBooking(res.data);
         } catch (err) {
             console.error(err);

@@ -8,11 +8,12 @@ import SelectField from "../../components/SelectField";
 import CheckboxGroup from "../../components/CheckboxGroup";
 import RadioGroup from "../../components/RadioGroup";
 import Toast from "../../components/Toast";
-import { trainerProfileValidation,type ValidationErrors } from "../../validations/trainerProfileValidation";
-import { trainerProfileService } from "../../services/trainer/trainer.Profile.service";
-import { PublicService } from "../../services/public/public.service";
+import {type ValidationErrors } from "../../validations/ValidationErrors";
+import { trainerProfileValidation} from "../../validations/trainerProfileValidation";
+import { TrainerService } from "../../services/trainer-service";
 import { type UpdateTrainerProfileDTO } from "../../types/trainerType";
-
+import { ProgramService } from "../../services/programs-service";
+import type { DiscoveryProgram } from "../../types/programType";
 const TrainerEditProfile = () => {
   const navigate = useNavigate();
 
@@ -25,10 +26,10 @@ const TrainerEditProfile = () => {
     phone: "",
     address: "",
     pricePerSession: 0,
-    services: [], 
+    programs: [], 
   });
 
-  const [specializationOptions, setSpecializationOptions] = useState<{serviceId: string, name: string}[]>([]);
+  const [programOptions, setProgramOptions] = useState<DiscoveryProgram[]>([]);
    const [errors, setErrors] = useState<ValidationErrors<UpdateTrainerProfileDTO>>({});
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -37,22 +38,23 @@ const TrainerEditProfile = () => {
   useEffect(() => {
     const initData = async () => {
       try {
-        const [servicesRes, profileRes] = await Promise.all([
-          PublicService.fetchPublicServices(),
-          trainerProfileService.getTrainerDetails()
+        const [programRes, profileRes] = await Promise.all([
+          ProgramService.DiscoverPrograms(),
+          TrainerService.FullProfile()
         ]);
-        console.log(servicesRes,profileRes)
-        setSpecializationOptions(servicesRes.data);
+        console.log(programRes,profileRes)
+        setProgramOptions(programRes.program.data);
         
         const t = profileRes.trainer;
         setFormData({
           ...t,
-          services: t.services?.map((s: any) => s.serviceId || s.id || s) || [],
+          programs: t.programs?.map((s: any) => s.programId) || [],
           experience: Number(t.experience) || 0,
           pricePerSession: Number(t.pricePerSession) || 0
         });
-      } catch (err) {
-        console.error("Error initializing data:", err);
+      } catch (err:any) {
+      const errMesg=err.response?.data?.message
+      setToast({ message: errMesg, type: "error" });
       } finally {
         setLoading(false);
       }
@@ -68,7 +70,7 @@ const TrainerEditProfile = () => {
     }));
   };
 
-  const handleCheckboxChange = (field: "services" | "languages", value: string) => {
+  const handleCheckboxChange = (field: "programs" | "languages", value: string) => {
     setFormData(prev => {
       const current = (prev[field] as string[]) || [];
       const updated = current.includes(value) 
@@ -104,15 +106,17 @@ const TrainerEditProfile = () => {
         }
       });
 
-      const res = await trainerProfileService.updateTrainerProfile(data);
+      const res = await TrainerService.UpdateProfile(data);
       if (res.success) {
-        setToast({ message: "Profile updated successfully!", type: "success" });
-        setTimeout(() => navigate("/trainer/trainer-profile"), 2000);
-      } else {
-        setToast({ message: res.message || "Failed to update profile", type: "error" });
+        navigate('/trainer/trainer-profile',{
+          state:{
+            message:res.message
+          }
+        })
       }
-    } catch (err) {
-      setToast({ message: "An unexpected error occurred", type: "error" });
+    } catch (err:any) {
+      const errMesg=err.response?.data?.message
+      setToast({ message: errMesg, type: "error" });
     } finally {
       setActionLoading(false);
     }
@@ -136,7 +140,7 @@ const TrainerEditProfile = () => {
         
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-black text-gray-900 mb-8 uppercase tracking-tight">
-            Edit Trainer Profile
+            Edit Profile
           </h1>
           
           <form 
@@ -181,14 +185,14 @@ const TrainerEditProfile = () => {
             />
 
             <CheckboxGroup
-              label="Specializations"
-              options={specializationOptions.map(s => ({ 
+              label="Programs"
+              options={programOptions.map(s => ({ 
                 label: s.name, 
-                value: s.serviceId 
+                value: s.programId 
               }))}
-              selected={formData.services}
-              onChange={(val) => handleCheckboxChange("services", val)}
-              error={errors.services}
+              selected={formData.programs}
+              onChange={(val) => handleCheckboxChange("programs", val)}
+              error={errors.programs}
             />
 
             <CheckboxGroup

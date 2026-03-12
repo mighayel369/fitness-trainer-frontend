@@ -2,18 +2,20 @@ import { useEffect, useState, useMemo } from "react";
 import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
 import StatCard from "../../components/StatCard";
-import { trainerDashboardService } from "../../services/trainer/trainer.Dashboard.service";
+import { DashboardService } from "../../services/dashboard-service";
 import { GenericAreaChart } from "../../components/AreaChart";
 import { useNavigate } from "react-router-dom";
 import {
   DollarSign, Star, Clock, TrendingUp,
   AlertCircle, MessageSquare, Calendar, ChevronRight
 } from "lucide-react";
+import {type PendingActionDTO, type RecentChatDTO, type TrainerDashboardMainData } from "../../types/dashboardType";
+import {type UpcomingAppointmentDTO } from "../../types/dashboardType";
 import DEFAULT_IMAGE from '../../assets/default image.png'
 const TrainerHome = () => {
-  const [dashData, setDashData] = useState<any>(null);
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().getDate());
+  const [dashData, setDashData] = useState<TrainerDashboardMainData|null>(null);
+  const [appointments, setAppointments] = useState<UpcomingAppointmentDTO[]>([]);
+  const [selectedDate, setSelectedDate] = useState<number>(new Date().getDate());
   const [loading, setLoading] = useState(true);
   const navigate=useNavigate()
   const weekDays = useMemo(() => {
@@ -38,27 +40,28 @@ const TrainerHome = () => {
     loadInitialDashboard();
   }, []);
 
-  const loadInitialDashboard = async () => {
-    try {
-      setLoading(true);
-      const [mainData, appointmentData] = await Promise.all([
-        trainerDashboardService.getTrainerDashboard(),
-        trainerDashboardService.getTrainerDashboardAppointment(new Date().toISOString())
-      ]);
-      setDashData(mainData);
-      setAppointments(appointmentData);
-      console.log(mainData)
-    } catch (error) {
-      console.error("Dashboard Load Error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadInitialDashboard = async () => {
+  try {
+    setLoading(true);
+    const [mainResponse, appointmentResponse] = await Promise.all([
+      DashboardService.TrainerDashboardMetrics(),
+      DashboardService.getTrainerDailyAgenda(new Date().toISOString())
+    ]);
+
+    setDashData(mainResponse.dashboardData); 
+    setAppointments(appointmentResponse.dashboardData);
+    
+  } catch (error) {
+    console.error("Dashboard Load Error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleDateChange = async (date: number, fullDate: string) => {
     setSelectedDate(date);
     try {
-      const data = await trainerDashboardService.getTrainerDashboardAppointment(fullDate);
+      const data = await DashboardService.getTrainerDailyAgenda(fullDate);
       setAppointments(data);
     } catch (error) {
       console.error("Failed to fetch appointments:", error);
@@ -106,7 +109,7 @@ const TrainerHome = () => {
               </div>
 
               <div className="flex flex-wrap gap-3">
-                {dashData.pendingActions.map((action: any, index: number) => (
+                {dashData.pendingActions.map((action: PendingActionDTO, index: number) => (
                   <div key={index} className="w-[260px] bg-slate-50 border border-slate-100 p-3 rounded-2xl flex flex-col justify-between transition-all hover:border-rose-200" onClick={()=>navigate(`/trainer/bookings/${action.bookingId}`)}>
                     <div className="flex items-start gap-3">
                       <div className="p-2 bg-white text-rose-500 rounded-xl shadow-sm flex-shrink-0">
@@ -150,14 +153,14 @@ const TrainerHome = () => {
 
               <div className="space-y-2">
                 {appointments.length > 0 ? (
-                  appointments.map((app: any, idx: number) => (
+                  appointments.map((app: UpcomingAppointmentDTO, idx: number) => (
                     <div key={idx} className="group flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl hover:border-indigo-200" onClick={()=>navigate(`/trainer/bookings/${app.bookingId}`)}>
                       <div className="flex items-center gap-3">
                         <img src={app.profilePic || DEFAULT_IMAGE} className="w-10 h-10 rounded-full object-cover" alt="" />
                         <div>
                           <h4 className="font-bold text-slate-900 text-xs">{app.clientName}</h4>
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-bold rounded-md">{app.service}</span>
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-bold rounded-md">{app.program}</span>
                             <span className="text-[9px] text-slate-400 font-medium">{app.timeSlot}</span>
                           </div>
                         </div>
@@ -183,11 +186,11 @@ const TrainerHome = () => {
 
               <div className="space-y-4">
                 {dashData.recentChats && dashData.recentChats.length > 0 ? (
-                  dashData.recentChats.map((chat: any, index: number) => (
+                  dashData.recentChats.map((chat: RecentChatDTO, index: number) => (
                     <div key={index} className="flex items-center gap-3 group cursor-pointer hover:bg-slate-50 p-1 rounded-xl transition-all">
                       <div className="relative flex-shrink-0">
                         <img
-                          src={chat.profilePic || "https://i.pravatar.cc/150"}
+                          src={chat.profilePic ||DEFAULT_IMAGE}
                           className="w-8 h-8 rounded-full object-cover border border-slate-100"
                           alt=""
                         />

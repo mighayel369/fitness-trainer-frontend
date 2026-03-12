@@ -5,27 +5,26 @@ import { FaEnvelope, FaCalendarAlt, FaVenusMars,
 } from "react-icons/fa";
 import AdminTopBar from "../../layout/AdminTopBar";
 import AdminSideBar from "../../layout/AdminSideBar";
-import { adminUserService } from "../../services/admin/admin.User.service";
+import { UserService } from "../../services/user-service";
 import Loading from "../../components/Loading";
 import NotFound from "../../components/NotFound";
 import Modal from "../../components/Modal";
 import Toast from "../../components/Toast";
 import SubmitButton from "../../components/SubmitButton";
-
-const DEFAULT_IMAGE = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
+import DEFAULT_IMAGE from '../../assets/default image.png'
+import {type User } from "../../types/userType";
 const UserDetails: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [user, setUser] = useState<User|null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
+  const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
 
   useEffect(() => {
-    document.title = "FitTribe | User Details";
+    document.title = "FitTribe | User Profile";
     fetchUser();
   }, [id]);
 
@@ -33,10 +32,11 @@ const UserDetails: React.FC = () => {
     if (!id) return;
     try {
       setLoading(true);
-      const response = await adminUserService.fetchUserById(id);
+      const response = await UserService.GetUserDetails(id);
       setUser(response.user);
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
+    } catch (error:any) {
+        const errorMsg = error.response?.data?.message || "Failed to fetch user datas";
+      setToast({ message: errorMsg, type: "error" });    
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ const UserDetails: React.FC = () => {
     setShowStatusModal(false);
 
     try {
-      const result = await adminUserService.updateUserStatus(user.userId, !user.status);
+      const result = await UserService.UpdateUserStatus(user.userId, !user.status);
 
       if (result.success) {
         setUser((prev: any) => ({ ...prev, status: result.newStatus }));
@@ -150,21 +150,21 @@ const UserDetails: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
                   <p className="text-[10px] font-bold text-orange-400 uppercase">Goal</p>
-                  <p className="text-sm font-black text-orange-700">{user.goal || "Not Set"}</p>
+                  <p className="text-sm font-black text-orange-700">Athletic Body</p>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
                   <p className="text-[10px] font-bold text-blue-400 uppercase">Weight</p>
-                  <p className="text-sm font-black text-blue-700">{user.weight ? `${user.weight} kg` : "N/A"}</p>
+                  <p className="text-sm font-black text-blue-700">60</p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Medical Notes</span>
-                  <span className="text-xs font-bold text-gray-700">{user.medicalConditions || "None Reported"}</span>
+                  <span className="text-xs font-bold text-gray-700">{"None Reported"}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-50">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Experience</span>
-                  <span className="text-xs font-bold text-gray-700 capitalize">{user.fitnessLevel || "Beginner"}</span>
+                  <span className="text-xs font-bold text-gray-700 capitalize">{"Beginner"}</span>
                 </div>
               </div>
             </div>

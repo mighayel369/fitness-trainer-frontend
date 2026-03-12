@@ -4,28 +4,36 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import UserNavBar from "../../layout/UserNavBar";
 import { FaRegCommentDots, FaMapMarkerAlt, FaGlobe, FaAward, FaBolt, FaCalendarCheck, FaBriefcase } from "react-icons/fa";
-import { userTrainerService } from "../../services/user/user.Trainer.service";
-const DEFAULT_IMAGE = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
+import DEFAULT_IMAGE from '../../assets/default image.png'
+import { TrainerService } from "../../services/trainer-service";
+import { useLocation } from 'react-router-dom';
+import Toast from "../../components/Toast";
 const TrainerProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [trainer, setTrainer] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  let location=useLocation()
   useEffect(() => {
-    document.title = trainer ? `${trainer.name} | Vitalic` : "Vitalic | Trainer Profile";
-  }, [trainer]);
+            if (location.state?.message) {
+          setToast({message:location.state.message,type:'success'});
+    
+          window.history.replaceState({}, document.title);
+        }
+    document.title = trainer ? `FitTribe | ${trainer.name}` : "FitTribe | Trainer Profile";
+  }, [trainer,location]);
 
   useEffect(() => {
     const fetchTrainer = async () => {
       try {
         if(!id) return
         setLoading(true);
-        const response = await userTrainerService.fetchTrainerProfile(id)
+        const response = await TrainerService.ExploreTrainerDetails(id)
         setTrainer(response.trainer);
-      } catch (err) {
-        console.error("Failed to fetch trainer details", err);
+      } catch (err:any) {
+        let errMesg=err.response?.data?.message
+         setToast({message:errMesg,type:'error'});
       } finally {
         setLoading(false);
       }
@@ -44,7 +52,13 @@ const TrainerProfile = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <UserNavBar />
-
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type="success" 
+          onClose={() => setToast(null)} 
+        />
+      )}
       <main className="pt-32 pb-20 max-w-7xl mx-auto px-6">
         <div className="flex flex-col lg:flex-row gap-10">
           
@@ -103,10 +117,10 @@ const TrainerProfile = () => {
               <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <h3 className="flex items-center gap-2 text-sm font-black text-gray-900 uppercase tracking-wider">
-                    <FaBolt className="text-red-500" /> Services
+                    <FaBolt className="text-red-500" /> Programs Offers
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {trainer.services?.map((s: any) => (
+                    {trainer.programs?.map((s: any) => (
                       <span key={s.name} className="bg-red-50 text-red-600 px-4 py-1.5 rounded-full text-xs font-bold border border-red-100">
                         {s.name}
                       </span>

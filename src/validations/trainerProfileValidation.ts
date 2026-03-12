@@ -1,7 +1,5 @@
 import { type UpdateTrainerProfileDTO } from "../types/trainerType";
-
-export type ValidationErrors<T> = Partial<Record<keyof T, string>>;
-
+import {type ValidationErrors } from "./ValidationErrors";
 export const trainerProfileValidation = (data: UpdateTrainerProfileDTO): ValidationErrors<UpdateTrainerProfileDTO> => {
   const newErrors: ValidationErrors<UpdateTrainerProfileDTO> = {};
 console.log(data)
@@ -19,8 +17,8 @@ console.log(data)
     newErrors.experience = "Experience is required";
   }
 
-  if (!data.services || data.services.length === 0) {
-    newErrors.services = "Please select at least one specialization";
+  if (!data.programs || data.programs.length === 0) {
+    newErrors.programs = "Please select at least one program";
   }
 
   if (!data.languages || data.languages.length === 0) {

@@ -2,9 +2,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
-import { trainerProfileService } from "../../services/trainer/trainer.Profile.service";
-import { trainerAuthService } from "../../services/trainer/trainer.Auth.service";
-import { PublicService } from "../../services/public/public.service";
+import { ProgramService } from "../../services/programs-service";
+import { TrainerService } from "../../services/trainer-service";
 import { reapplyValidation, type ValidationErrors } from "../../validations/reapplyValidation";
 import { type ReapplyTrainerDTO } from "../../types/trainerType";
 import TextInput from "../../components/TextInput";
@@ -12,11 +11,12 @@ import SelectField from "../../components/SelectField";
 import CheckboxGroup from "../../components/CheckboxGroup";
 import RadioGroup from "../../components/RadioGroup";
 import Toast from "../../components/Toast";
-type ServiceOption = {
-  serviceId: string;
+import { AuthService } from "../../services/auth-service";
+type ProgramOption = {
+  programId: string;
   name: string;
   description: string;
-  servicePic: string;
+  programPic: string;
 };
 
 const languageOptions = import.meta.env.VITE_LANGUAGES?.split(",").map((lang: string) => ({ label: lang.trim(), value: lang.trim() })) || [];
@@ -29,7 +29,7 @@ const ReapplyPage = () => {
     name: "",
     gender: "",
     experience: 0,
-    services: [],
+    programs: [],
     languages: [],
     pricePerSession:0,
     certificate: null,
@@ -37,34 +37,35 @@ const ReapplyPage = () => {
   const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
   const [certificateUrl, setCertificateUrl] = useState("");
   const [errors, setErrors] = useState<ValidationErrors<ReapplyTrainerDTO>>({});
-  const [specializationOptions, setSpecializationOptions] = useState<ServiceOption[]>([]);
+  const [programOptions, setProgramOptions] = useState<ProgramOption[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "FitConnect | Trainer Reapply";
+    document.title = "FitTribe | Reapply";
     
     const initData = async () => {
       try {
         const [servicesRes, profileRes] = await Promise.all([
-          PublicService.fetchPublicServices(),
-          trainerProfileService.getTrainerDetails()
+          ProgramService.DiscoverPrograms(),
+          TrainerService.FullProfile()
         ]);
         
-        setSpecializationOptions(servicesRes.data);
+        setProgramOptions(servicesRes.data);
         
         const t = profileRes.trainer;
         setFormData({
           name: t.name || "",
           gender: t.gender || "",
           experience: t.experience || 0,
-          services: t.services?.map((s: any) => s.serviceId || s.id) || [],
+          programs: t.services?.map((s: any) => s.serviceId || s.id) || [],
           pricePerSession:t.pricePerSession||0,
           languages: t.languages || [],
           certificate: null,
         });
         setCertificateUrl(t.certificate);
-      } catch (err) {
-        console.error("Failed to load reapply data", err);
+      } catch (err:any) {
+      const errorMsg = err.response?.data?.message
+      setToast({message:errorMsg,type:'error'})
       } finally {
         setLoading(false);
       }
@@ -81,7 +82,7 @@ const ReapplyPage = () => {
     }));
   };
 
-  const handleCheckboxChange = (field: "services" | "languages", value: string) => {
+  const handleCheckboxChange = (field: "programs" | "languages", value: string) => {
     setFormData(prev => {
       const current = prev[field] || [];
       const updated = current.includes(value)
@@ -118,7 +119,7 @@ const ReapplyPage = () => {
       }
     });
 
-      let res=await trainerAuthService.reapplyTrainer(data);
+      let res=await AuthService.ReapplyTrainer(data);
       if(res.success){
         setToast({message:res.message,type:'success'})
         setTimeout(() => navigate("/trainer/trainer-profile"), 2000);
@@ -178,14 +179,14 @@ const ReapplyPage = () => {
           />
 
           <CheckboxGroup
-            label="Services"
-            options={specializationOptions.map(s => ({
+            label="Programs"
+            options={programOptions.map(s => ({
               label: s.name,
-              value: s.serviceId,
+              value: s.programId,
             }))}
-            selected={formData.services}
-            onChange={(id) => handleCheckboxChange("services", id)}
-            error={errors.services}
+            selected={formData.programs}
+            onChange={(id) => handleCheckboxChange("programs", id)}
+            error={errors.programs}
           />
 
           <CheckboxGroup

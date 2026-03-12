@@ -4,14 +4,14 @@ import { IoIosNotifications } from "react-icons/io"
 import { useNavigate } from "react-router-dom"
 import { useState } from "react"
 import { useDispatch } from "react-redux";
-import { adminAuthService } from '../services/admin/admin.Auth.service'
+import { AuthService } from '../services/auth-service'
 import { clearAccessToken } from "../redux/slices/authSlice";
 const AdminTopBar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate=useNavigate()
   const dispatch = useDispatch();
   const handleLogout = async() => {
-    await adminAuthService.clearRefreshToken()
+    await AuthService.Logout()
     dispatch(clearAccessToken());
     navigate('/admin/login');
   };

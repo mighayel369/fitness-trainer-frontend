@@ -2,11 +2,8 @@
 import React, { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-
 import loginpic from '../../assets/loginpic.webp';
-import { loginValidate } from '../../validations/loginValidate';
 import { setAccessToken } from '../../redux/slices/authSlice';
-import { userAuthService } from '../../services/user/user.Auth.service';
 import LogoHeader from '../../assets/logo.jpg'
 import Toast from "../../components/Toast";
 import TextInput from '../../components/TextInput';
@@ -14,16 +11,16 @@ import PasswordInput from '../../components/PasswordInput';
 import SubmitButton from '../../components/SubmitButton';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
 import BackgroundImageWrapper from '../../components/BackgroundImage';
+import { AuthService } from '../../services/auth-service';
+import {type ValidationErrors } from '../../validations/ValidationErrors';
+import type { UserLoginDTO } from '../../types/userType';
+import { userLoginValidation } from '../../validations/userLoginValidation';
 
-interface Errors {
-  email?: string;
-  password?: string;
-}
 
 const UserLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
+  const [errors, setErrors] = useState<ValidationErrors<UserLoginDTO>>({});
   const [loading, setLoading] = useState(false);
   const [generalError, setGeneralError] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -46,7 +43,7 @@ const UserLogin: React.FC = () => {
     setErrors({});
     setGeneralError('');
 
-    const validationErrors = loginValidate({ email, password });
+    const validationErrors = userLoginValidation({ email, password });
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -54,11 +51,15 @@ const UserLogin: React.FC = () => {
 
     try {
       setLoading(true);
-      const result = await userAuthService.login(email, password);
+      const result = await AuthService.LoginUser({email, password});
 
       if (result.success && result.accessToken) {
         dispatch(setAccessToken(result.accessToken));
-        navigate('/', { replace: true });
+        navigate('/',{
+          state:{
+            message:result.message
+          }
+        });
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Invalid credentials. Please try again.";
@@ -113,6 +114,8 @@ const UserLogin: React.FC = () => {
           <form className="space-y-6" onSubmit={handleSubmit} noValidate>
             <div className="space-y-4">
               <TextInput
+                label='Email'
+                name='email'
                 type="email"
                 placeholder="Email address"
                 value={email}
@@ -150,7 +153,7 @@ const UserLogin: React.FC = () => {
             <div className="h-[1px] bg-gray-200 flex-1"></div>
           </div>
 
-          <GoogleAuthButton text="Continue with Google" onClick={() => userAuthService.googleLogin()} />
+          <GoogleAuthButton text="Continue with Google" onClick={() => AuthService.GoogleLogin()} />
 
           <footer className="mt-10 text-center text-sm text-gray-500">
             Don't have an account?{' '}

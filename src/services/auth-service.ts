@@ -1,17 +1,20 @@
 import axiosInstance from "../api/AxiosInstance";
 import { API_ENDPOINTS } from "../api/endPoints";
+import type { AdminLoginDTO } from "../types/adminType";
+import type { TrainerLoginDTO } from "../types/trainerType";
+import type { UserLoginDTO } from "../types/userType";
 
 export const AuthService={
-  LoginAdmin: async (email: string, password: string) => {
-    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN_ADMIN, { email, password });
+  LoginAdmin: async (payload:AdminLoginDTO) => {
+    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN_ADMIN, payload);
     return data;
   },
-  LoginTrainer: async (email: string, password: string) => {
-    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN_TRAINER, { email, password });
+  LoginTrainer: async (payload:TrainerLoginDTO) => {
+    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN_TRAINER, payload);
     return data;
   },
-  LoginUser: async (email: string, password: string) => {
-    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN_USER, { email, password });
+  LoginUser: async (payload:UserLoginDTO) => {
+    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN_USER, payload);
     console.log(data)
     return data;
   },
@@ -20,7 +23,7 @@ export const AuthService={
     return data
   },
    RegisterTrainer: async (formData: FormData) => {
-    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.REGISTER_USER, formData, {
+    const { data } = await axiosInstance.post(API_ENDPOINTS.AUTH.REGISTER_TRAINER, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return data;
@@ -64,9 +67,14 @@ export const AuthService={
     const {data}=await axiosInstance.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD,{payload})
     return data
   },
-    VerifyUserAccount:async(payload:any)=>{
-    console.log(payload)
+    VerifyUserAccount:async()=>{
+   
     const {data}=await axiosInstance.get(API_ENDPOINTS.AUTH.VERIFY_USER_ACCOUNT)
+    return data
+  },
+  VerifyTrainerAccount:async()=>{
+
+    const {data}=await axiosInstance.get(API_ENDPOINTS.AUTH.VERIFY_TRAINER_ACCOUNT)
     return data
   },
   Logout: async () => {

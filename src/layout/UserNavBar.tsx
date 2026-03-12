@@ -1,20 +1,19 @@
 import { FaSearch, FaBell, FaChevronDown } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "../redux/hooks";
 import { clearAccessToken } from "../redux/slices/authSlice";
-import { userAuthService } from "../services/user/user.Auth.service";
-
+import { AuthService } from "../services/auth-service";
 import logo from "../assets/logo.jpg";
 import "./UserNavbar.css";
 
 const UserNavBar = () => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [scrolled, setScrolled] = useState(false);
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [user, setUser] = useState<any>("");
+  const [scrolled, setScrolled] = useState<boolean>(false);
 
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const location = useLocation();
 
   useEffect(() => {
@@ -23,12 +22,13 @@ const UserNavBar = () => {
     
     const verifyUser = async () => {
       try {
-        const res = await userAuthService.verifyAccessToken();
-        if (res.success) setUserName(res.name);
+        const res = await AuthService.VerifyUserAccount();
+        if (res.success) setUser(res.user);
         else dispatch(clearAccessToken());
-      } catch (error) {
+      } catch (error:any) {
+        let errMesg=error.response?.data?.message
         dispatch(clearAccessToken());
-        setUserName("");
+        setUser("");
       }
     };
     verifyUser();
@@ -36,7 +36,7 @@ const UserNavBar = () => {
   }, [dispatch]);
 
   const handleLogout = async () => {
-    await userAuthService.clearRefreshToken();
+    await AuthService.Logout();
     dispatch(clearAccessToken());
     navigate("/login");
   };
@@ -82,14 +82,14 @@ const UserNavBar = () => {
               <span className="notif-dot animate-pulse"></span>
             </div>
 
-            {userName ? (
+            {user.name ? (
               <div 
                 className="profile-trigger"
                 onMouseEnter={() => setShowDropdown(true)}
                 onMouseLeave={() => setShowDropdown(false)}
               >
                 <div className="user-avatar">
-                   {userName.charAt(0).toUpperCase()}
+                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <FaChevronDown className={`chevron ${showDropdown ? 'rotate' : ''}`} />
                 

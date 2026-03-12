@@ -2,8 +2,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import logoPic from '../assets/logo.jpg';
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { trainerAuthService } from "../services/trainer/trainer.Auth.service";
+import { AuthService } from "../services/auth-service";
 import { clearAccessToken } from "../redux/slices/authSlice";
+import { FaLock } from "react-icons/fa";
 
 const TrainerSideBar = () => {
   const location = useLocation();
@@ -12,7 +13,7 @@ const TrainerSideBar = () => {
   const token = useSelector((state: any) => state.auth.accessToken);
   
   const [trainerStatus, setTrainerStatus] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const navItems = [
     { label: "Dashboard", to: "/trainer" },
@@ -29,7 +30,7 @@ const TrainerSideBar = () => {
         return;
       }
       try {
-        const res = await trainerAuthService.verifyTrainerAccessToken();
+        const res = await AuthService.VerifyTrainerAccount();
         
         if (!res.success || res.trainer.status === false) {
           dispatch(clearAccessToken());
@@ -45,10 +46,14 @@ const TrainerSideBar = () => {
           navigate("/trainer/trainer-profile", { replace: true });
         }
 
-      } catch (error) {
-        console.error("Verification failed:", error);
+      } catch (error:any) {
+        let errMesg=error.response?.data?.message
         dispatch(clearAccessToken());
-        navigate('/trainer/login');
+        navigate('/trainer/login',{
+          state:{
+            message:errMesg
+          }
+        });
       } finally {
         setLoading(false);
       }
@@ -87,7 +92,7 @@ const TrainerSideBar = () => {
               className="px-4 py-2 rounded-md text-base font-medium text-gray-400 cursor-not-allowed bg-gray-50 flex items-center justify-between"
             >
               {item.label}
-              <span className="text-[10px] bg-gray-200 px-1 rounded text-gray-500">Locked</span>
+              <span className="bg-gray-200 px-1 rounded text-gray-500"><FaLock /></span>
             </span>
           ) : (
             <Link

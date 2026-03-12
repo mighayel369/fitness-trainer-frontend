@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { adminDashboardService } from "../../services/admin/admin.Dashboard.service";
+import { DashboardService } from "../../services/dashboard-service";
 import AdminSideBar from "../../layout/AdminSideBar";
 import AdminTopBar from "../../layout/AdminTopBar";
 import StatCard from "../../components/StatCard";
@@ -7,29 +7,46 @@ import { GenericAreaChart } from "../../components/AreaChart";
 import { GenericBarChart } from "../../components/BarChart";
 import { DollarSign, Star, TrendingUp, Users, PieChart, Calendar } from "lucide-react";
 import { GenericPieChart } from "../../components/PieChart";
+import Toast from "../../components/Toast";
+import { useLocation } from 'react-router-dom';
+import {type AdminDashbardResponseDTO, type TopTrainersDTO } from "../../types/dashboardType";
 const Dashboard = () => {
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
+  const [dashboardData, setDashboardData] = useState<AdminDashbardResponseDTO|null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+const [toastMessage, setToastMessage] = useState<string | null>(null);
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await adminDashboardService.getDashboardInfo();
-      setDashboardData(response.data);
-    } catch (error) {
-      console.error("Failed to fetch dashboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const response = await DashboardService.AdminDashboardInsights();
+      setDashboardData(response.dashboardData);
+    } catch (err: any) {
+  const errorMsg = err.response?.data?.message || "Failed to load system analytics";
+  setToastMessage(errorMsg);
+} finally {
+  setLoading(false);
+}
+  }
+  let location=useLocation()
+useEffect(() => {
+  if (location.state?.message) {
+    setToastMessage(location.state.message);
+    window.history.replaceState({}, document.title);
+  }
+  fetchDashboardData();
+}, []);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  if (loading || !dashboardData) {
+  if (loading) {
     return <div className="flex h-screen items-center justify-center">Loading Analytics...</div>;
   }
+
+  if (!dashboardData) {
+  return (
+    <div className="flex h-screen items-center justify-center flex-col gap-4">
+      <p className="text-slate-500 font-medium">Unable to load dashboard.</p>
+      <button onClick={fetchDashboardData} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Retry</button>
+    </div>
+  );
+}
 
   const { metrics, performanceData, topTrainers, bookingStatus, peakHoursData } = dashboardData;
 
@@ -39,6 +56,13 @@ const Dashboard = () => {
       <AdminTopBar />
 
       <main className="ml-72 pt-28 px-10 pb-12">
+              {toastMessage && (
+                <Toast 
+                  message={toastMessage} 
+                  type="success" 
+                  onClose={() => setToastMessage(null)} 
+                />
+              )}
         <header className="flex justify-between items-end mb-10">
           <div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tight">System Analytics</h1>
@@ -106,7 +130,7 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {topTrainers.map((trainer: any, idx: number) => (
+                    {topTrainers.map((trainer: TopTrainersDTO, idx: number) => (
                       <tr key={idx} className="group">
                         <td className="py-4 font-bold text-slate-900 text-sm">{trainer.name}</td>
                         <td className="py-4 text-sm text-slate-600">{trainer.bookings}</td>

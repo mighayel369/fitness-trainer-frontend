@@ -5,21 +5,22 @@ import TrainerTopBar from "../../layout/TrainerTopBar";
 import TrainerSideBar from "../../layout/TrainerSideBar";
 import Toast from "../../components/Toast";
 import Loading from "../../components/Loading";
-import { trainerBookingervice } from "../../services/trainer/trainer.Booking.service";
+import { BookingService } from "../../services/booking-service";
 import GenericTable from "../../components/GenericTable";
 import Modal from "../../components/Modal";
+import {type TrainerBookingColumnActions } from "../../types/table-types";
 import { allBookingsColumns,pendingBookingsColumns,rescheduleColumns } from "../../constants/TableColumns/TrainerBookingColumns";
 type TabType = "all" | "pending" | "reschedule";
-export interface TableActions {
-  onView: (id: string) => void;
-  onDecision: (id: string, type: string, context: "pending" | "reschedule") => void;
-}
-interface ActiveAction {
-  id: string;
-  type: string;
-  context: string;
-  payload?: any; 
-}
+
+const TRAINER_BOOKING_ACTIONS = {
+    booking: {
+        accept: (id: string) => BookingService.PendingRequestAccept(id),
+       reject: (id: string, reason: string) => BookingService.PendingRequestReject(id, reason),    },
+    reschedule: {
+        accept: (id: string) => BookingService.ApproveReschedule(id),
+        reject: (id: string,reason:string) => BookingService.RejectReschedule(id,reason),
+    },
+};
 const TrainerBookings = () => {
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [bookings, setBookings] = useState<any[]>([]);
@@ -29,17 +30,31 @@ const TrainerBookings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 const [showModal, setShowModal] = useState(false);
-const [activeAction, setActiveAction] = useState<ActiveAction | null>(null);
 const navigate = useNavigate();
+const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [action, setAction] = useState<{
+    type: 'accept' | 'reject';
+    context: 'booking' | 'reschedule';
+  } | null>(null);
+
+const triggerAction = (id: string, type: 'accept' | 'reject', context: 'booking' | 'reschedule') => {
+    setSelectedId(id);
+    setAction({ type, context });
+    setShowModal(true);
+  };
 
 const getActiveColumns = () => {
+const actions: TrainerBookingColumnActions = {
+    onView: (id) => navigate(`/trainer/bookings/${id}`),
+    onAction: triggerAction 
+  };    
     switch (activeTab) {
       case "pending":
-        return pendingBookingsColumns(tableActions);
+        return pendingBookingsColumns(actions);
       case "reschedule":
-        return rescheduleColumns(tableActions);
+        return rescheduleColumns(actions);
       default:
-        return allBookingsColumns(tableActions);
+        return allBookingsColumns(actions.onView);
     }
   };
   const limit = 5;
@@ -49,28 +64,14 @@ const getActiveColumns = () => {
   }, [activeTab, currentPage, searchQuery]);
 
 
-  const actionRegistry: Record<string, (id: string, type: string) => Promise<any>> = {
-    pending: (id, type) => type === 'approve' 
-      ? trainerBookingervice.acceptPendingBooking(id) 
-      : trainerBookingervice.rejectPendingBooking(id),
-      
-    reschedule: (id, type) => 
-      trainerBookingervice.handleRescheduleRequest(id, type),
-  };
-const tableActions: TableActions = {
-    onView: (id) => navigate(`/trainer/bookings/${id}`),
-    onDecision: (id, type, context) => {
-      setActiveAction({ id, type, context });
-      setShowModal(true);
-    }
-  };
+
 const fetchData = async () => {
     try {
       setIsLoading(true);
       const serviceMap = {
-        all: trainerBookingervice.fetchTrainerAllBookings,
-        pending: trainerBookingervice.fetchTrainerPendingBookings,
-        reschedule: trainerBookingervice.fetchTrainerRescheduleRequests,
+        all: BookingService.TrainerSessionHistory,
+        pending: BookingService.PendingSessionsRequests,
+        reschedule: BookingService.RescheduleSessionsRequests,
       };
 
       const res = await serviceMap[activeTab](currentPage, searchQuery, limit);
@@ -86,25 +87,41 @@ const fetchData = async () => {
     }
   };
 
-  const handleConfirmAction=async()=>{
-    if (!activeAction) return;
-    try{
-      setIsLoading(true)
-      const execute=actionRegistry[activeAction.context]
-      const res = await execute(activeAction.id, activeAction.type);
+const handleConfirmAction = async (reason?: string) => {
+    if (!action || !selectedId) return;
 
+    if (action.type === 'reject' && (!reason || reason.trim().length < 5)) {
+      setShowModal(false)
+      setToast({ 
+        message: "Please provide a valid reason (at least 5 characters).", 
+        type: "error" 
+      });
+      return; 
+    }
+
+    try {
+      setIsLoading(true);
+      const serviceFn = TRAINER_BOOKING_ACTIONS[action.context][action.type];
+      console.log(serviceFn)
+      const res = await serviceFn(selectedId, reason || "");
+      console.log(res)
       if (res.success) {
         setToast({ message: res.message, type: "success" });
-        fetchData();
+        await fetchData();
+        setAction(null);
+        setSelectedId(null);
       }
-    }catch (err: any) {
-      setToast({ message: "Action failed", type: "error" });
+    } catch (err: any) {
+      console.log(err)
+      setToast({ 
+        message: err.response?.data?.message || "Action failed.", 
+        type: "error" 
+      });
     } finally {
-      setShowModal(false);
-      setActiveAction(null);
       setIsLoading(false);
+      setShowModal(false);
     }
-  }
+  };
 
 
   return (
@@ -185,13 +202,14 @@ const fetchData = async () => {
             </div>
           </>
         )}
-       <Modal
-        isVisible={showModal}
-        onCancel={() => setShowModal(false)}
-        onConfirm={handleConfirmAction}
-        title="Confirm Action"
-        message={`Confirming will ${activeAction?.type} this ${activeAction?.context} request.`}
-      />
+                <Modal
+                    isVisible={showModal}
+                    onCancel={() => setShowModal(false)}
+                    onConfirm={handleConfirmAction}
+                    title="Confirm Action"
+                    message={`Confirming will ${action?.type} this ${action?.context} request.`}
+                    showReasonInput={action?.type === "reject"}
+                />
       </main>
     </div>
      );

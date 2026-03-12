@@ -4,8 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import UserNavBar from "../../layout/UserNavBar";
 import Loading from "../../components/Loading";
 import Modal from "../../components/Modal";
-import { userBookingService } from "../../services/user/user.Booking.service";
-import { userTrainerService } from "../../services/user/user.Trainer.service";
 import Toast from "../../components/Toast";
 import { type UserBookingDetails } from "../../types/bookingType";
 import {
@@ -13,7 +11,9 @@ import {
   ArrowLeft, RefreshCw, Timer, Activity,
   ShieldCheck, Info, MapPin
 } from "lucide-react";
-
+import { BookingService } from "../../services/booking-service";
+import { SlotService } from "../../services/slot-service";
+import DEFAULT_IMAGE from '../../assets/default image.png'
 const BookingDetails = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const BookingDetails = () => {
   const fetchBookingDetails = async (id: string) => {
     try {
       setLoading(true);
-      const res = await userBookingService.getBookingById(id);
+      const res = await BookingService.SessionDetails(id);
       setBooking(res.data);
       document.title = `FitTribe | Session Details`;
     } catch (error) {
@@ -50,7 +50,7 @@ const BookingDetails = () => {
     console.log(booking?.trainerId)
     const fetchSlots = async () => {
       try {
-        const res = await userTrainerService.fetchTrainerSlot(
+        const res = await SlotService.AvailableBookingSlots(
           new Date(newDate),
           booking.trainerId
         );
@@ -70,14 +70,13 @@ const handleRescheduleSubmit = async () => {
     }
 
     try {
-      const res = await userBookingService.rescheduleBooking({
+      const res = await BookingService.RescheduleSession({
         bookingId,
         newDate,
         newTimeSlot: newTime
       });
       console.log(res)
       if(res.success) {
-        setShowRescheduleModal(false);
         setBooking((prev: any) => ({
           ...prev,
           bookingStatus: 'reschedule_requested'
@@ -94,6 +93,7 @@ const handleRescheduleSubmit = async () => {
         type: "error" 
       });
     } finally {
+      setShowRescheduleModal(false);
       setNewTime("");
       setSlots([]);
     }
@@ -104,10 +104,10 @@ const handleRescheduleSubmit = async () => {
   try {
     if(!booking) return
     setLoading(true);
-    const res = await userBookingService.cancelBooking(booking.bookingId);
+    const res = await BookingService.CancelSession(booking.bookingId);
     
     if (res.success) {
-      setBooking((prev: any) => ({ ...prev, status: "cancelled" }));
+      setBooking((prev: any) => ({ ...prev, bookingStatus: "cancelled" }));
       setToast({ 
         message: res.message||"Booking cancelled successfully. Refund processed to wallet.", 
         type: "success" 
@@ -155,7 +155,7 @@ const handleRescheduleSubmit = async () => {
                 Verified Booking #{booking.bookingId.slice(-8)}
               </div>
               <h1 className="text-3xl font-extrabold mt-2 flex items-center gap-3">
-                {booking.bookedService}
+                {booking.bookedProgram}
                 <Activity size={24} className="text-blue-300" />
               </h1>
             </div>
@@ -198,7 +198,7 @@ const handleRescheduleSubmit = async () => {
                 <h3 className="text-indigo-900/40 text-[10px] font-black uppercase mb-4 tracking-[0.2em]">Trainer Details</h3>
                 <div className="flex items-center gap-6">
                   <img
-                    src={booking.trainerProfilePic || "https://ui-avatars.com/api/?name=" + booking.trainerName}
+                    src={booking.trainerProfilePic || DEFAULT_IMAGE}
                     alt={booking.trainerName}
                     className="w-20 h-20 rounded-2xl object-cover shadow-md border-2 border-white"
                   />
@@ -218,10 +218,10 @@ const handleRescheduleSubmit = async () => {
 
               <section>
                 <h3 className="text-gray-400 text-[10px] font-black uppercase mb-3 tracking-[0.2em] flex items-center gap-2">
-                  <Info size={14} /> Service Overview
+                  <Info size={14} /> Program Overview
                 </h3>
                 <p className="text-gray-600 text-sm leading-relaxed">
-                  This {booking.bookedService} session is designed to meet your specific fitness goals.
+                  This {booking.bookedProgram} session is designed to meet your specific fitness goals.
                   Please ensure you join the session link 5 minutes before the scheduled time.
                   Have your basic equipment and water bottle ready for the duration of {booking.sessionDuration || 60} minutes.
                 </p>
@@ -318,6 +318,7 @@ const handleRescheduleSubmit = async () => {
           setShowRescheduleModal(false);
           setSlots([])
           setNewTime('')
+          setNewDate('')
         }}
       >
         <div className="space-y-6 py-2">

@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import UserNavBar from "../../layout/UserNavBar";
 import { FaMapMarkerAlt, FaStar, FaChevronDown } from "react-icons/fa";
-import { userTrainerService } from "../../services/user/user.Trainer.service";
 import { useNavigate } from "react-router-dom";
 import Pagination from "../../components/Pagination";
 import SearchInput from "../../components/SearchInput";
-import { type Service } from "../../types/serviceType";
+import { type Program } from "../../types/programType";
 import {type UserSideTrainer } from "../../types/trainerType";
-import { PublicService } from "../../services/public/public.service";
-type ServiceOption = {
-  serviceId: string;
+import { ProgramService } from "../../services/programs-service";
+import { TrainerService } from "../../services/trainer-service";
+type ProgramOption = {
+  programId: string;
   name: string;
 };
 const TrainerListing = () => {
@@ -18,11 +18,11 @@ const TrainerListing = () => {
     gender: "",
     availability: "",
     language: "",
-    services: "",
+    programs: "",
     sort: "rating"
   });
   const [search, setSearch] = useState("");
-  const [services, setServices] = useState<ServiceOption[]>([])
+  const [programs, setPrograms] = useState<ProgramOption[]>([])
   const [trainers, setTrainers] = useState<UserSideTrainer[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState<number>(1);
@@ -31,17 +31,17 @@ const TrainerListing = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-       let response = await PublicService.fetchPublicServices();
+       let response = await ProgramService.DiscoverPrograms();
     
         if (response.data) {
-          const serviceData: ServiceOption[] = response.data.map(
-            (curr: Service): ServiceOption => ({
-             serviceId: curr.serviceId,
+          const programData: ProgramOption[] = response.data.map(
+            (curr: Program): ProgramOption => ({
+             programId: curr.programId,
               name: curr.name,
             })
           );
-          console.log(serviceData)
-          setServices(serviceData)
+          console.log(programData)
+          setPrograms(programData)
         }
       } catch (error) {
         console.error("Error fetching services:", error);
@@ -57,7 +57,7 @@ const TrainerListing = () => {
     const fetchTrainers = async () => {
       try {
         setLoading(true);
-        const response = await userTrainerService.fetchTrainers(page, search, filters);
+        const response = await TrainerService.ExploreTrainers(page, search, filters);
         setTrainers(response.data || []);
         setTotalPages(response.total || 1);
       } catch (err) {
@@ -101,7 +101,7 @@ const TrainerListing = () => {
           <div className="flex flex-wrap gap-3">
             {[
               { label: "Gender", key: "gender", options: ["male", "female"] },
-              { label: "Services", key: "services", options: [...services] },
+              { label: "Programs", key: "programs", options: [...programs] },
               { label: "Availability", key: "availability", options: ["Morning", "Evening"] }
             ].map((item) => (
               <div key={item.key} className="relative group">
@@ -111,9 +111,9 @@ const TrainerListing = () => {
                 >
                   <option value="">{item.label}</option>
                   {item.options.map((opt: any) => {
-                    if (item.key === "services") {
+                    if (item.key === "programs") {
                       return (
-                        <option key={opt.serviceId} value={opt.serviceId}>
+                        <option key={opt.programId} value={opt.programId}>
                           {opt.name}
                         </option>
                       );
@@ -180,7 +180,7 @@ const TrainerListing = () => {
                           {trainer.name}
                         </h3>
                         <p className="text-sm font-semibold text-red-500 uppercase tracking-widest mt-1">
-                          {trainer.serviceName || "Fitness Coach"}
+                          {trainer.programs || "Fitness Coach"}
                         </p>
                       </div>
 

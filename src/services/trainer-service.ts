@@ -13,13 +13,13 @@ export const TrainerService={
     return data
   },
   UpdateProfile: async (formData: FormData) => {
-    const { data } = await axiosInstance.post(API_ENDPOINTS.TRAINER.UPDATE_PROFILE, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    const { data } = await axiosInstance.put(API_ENDPOINTS.TRAINER.UPDATE_PROFILE, formData,{
+      headers:{'Content-Type':'multipart/form-data'}
     });
     return data;
   },
   UpdateProfilePic: async (formData: FormData) => {
-    const { data } = await axiosInstance.post(API_ENDPOINTS.TRAINER.UPDATE_AVATAR, formData, {
+    const { data } = await axiosInstance.patch(API_ENDPOINTS.TRAINER.UPDATE_AVATAR, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return data;

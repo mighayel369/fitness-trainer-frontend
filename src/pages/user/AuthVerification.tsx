@@ -9,7 +9,7 @@ import LogoHeader from '../../assets/logo.jpg';
 import SubmitButton from '../../components/SubmitButton';
 import BackgroundImageWrapper from '../../components/BackgroundImage';
 import OTPInputGroup from '../../components/OTPInputGroup';
-import { PublicService } from '../../services/public/public.service';
+import { AuthService } from '../../services/auth-service';
 
 
 const AuthVerification: React.FC = () => {
@@ -74,8 +74,8 @@ const AuthVerification: React.FC = () => {
       setIsLoading(true);
       setError('');
       const verifyMethod = role === 'trainer' 
-      ? PublicService.verifyTrainerOtp 
-      : PublicService.verifyUserOtp;
+      ? AuthService.VerifyTrainerOtp 
+      : AuthService.VerifyUserOtp
 
     const result = await verifyMethod(email!, otpCode);
       
@@ -99,7 +99,7 @@ const AuthVerification: React.FC = () => {
   const handleResend = async () => {
     if (!email || !role) return;
     try {
-      await PublicService.resndOtp(email, role);
+      await AuthService.ReSendOtp(email, role);
       setOtp(new Array(6).fill(''));
       inputRef.current[0]?.focus();
       localStorage.setItem('startTime', Date.now().toString());

@@ -3,7 +3,7 @@ export type Booking={
     trainerName:string,
     bookedDate:Date,
     bookedTime:string,
-    bookedService:string,
+    bookedProgram:string,
     sessionAmount:number,
     bookingStatus:'pending' | 'confirmed' | 'completed' | 'cancelled' | 'reschedule_requested'|'rejected'
 }
@@ -15,7 +15,7 @@ export interface TrainerBookingDetails {
     clientPhone?: string;
     clientProfilePic?: string;
     
-    bookedService: string;
+    bookedProgram: string;
     bookedDate: string; 
     bookedTime: string;
     sessionDuration: number;
@@ -37,7 +37,7 @@ export interface TrainerBookingDetails {
 export interface UserBookingDetails{  
   bookingId: string;    
   
-  bookedService: string;
+  bookedProgram: string;
   bookedDate: string;      
   bookedTime: string;    
   sessionDuration: number;

@@ -2,30 +2,25 @@
 import React, { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-
 import loginpic from '../../assets/trainer-loginpic.webp';
 import LogoHeader from '../../assets/logo.jpg';
 import { setAccessToken } from '../../redux/slices/authSlice';
-import { trainerAuthService } from '../../services/trainer/trainer.Auth.service';
-import { loginValidate } from '../../validations/loginValidate';
-
+import { AuthService } from '../../services/auth-service';
 import Toast from "../../components/Toast";
 import TextInput from '../../components/TextInput';
 import PasswordInput from '../../components/PasswordInput';
 import SubmitButton from '../../components/SubmitButton';
 import BackgroundImageWrapper from '../../components/BackgroundImage';
-
-interface Errors {
-  email?: string;
-  password?: string;
-}
+import {type TrainerLoginDTO } from '../../types/trainerType';
+import type { ValidationErrors } from '../../validations/ValidationErrors';
+import { trainerLoginValidate } from '../../validations/trainerLoginValidate';
 
 const TrainerLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
-  const [loading, setLoading] = useState(false);
-  const [generalError, setGeneralError] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [errors, setErrors] = useState<ValidationErrors<TrainerLoginDTO>>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [generalError, setGeneralError] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const dispatch = useDispatch();
@@ -39,33 +34,37 @@ const TrainerLogin: React.FC = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location]);
+const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setErrors({});
+  setGeneralError('');
+  
+  const newErrors = trainerLoginValidate({ email, password });
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
+  }
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors({});
-    setGeneralError('');
-    
-    const newErrors = loginValidate({ email, password });
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
+  setLoading(true);
+  try {
+    const result = await AuthService.LoginTrainer({ email, password });
+
+    if (result.success) {
+
+      dispatch(setAccessToken(result.accessToken));
+      navigate('/trainer',{
+        state:{
+          message:result.message
+        }
+      }); 
     }
-
-    setLoading(true);
-    try {
-      const result = await trainerAuthService.loginTrainer(email, password);
-      if (result.success) {
-        dispatch(setAccessToken(result.accessToken));
-        navigate('/trainer', { replace: true }); 
-      }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || "Invalid trainer credentials.";
-      setGeneralError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  } catch (err: any) {
+    const errorMsg = err.response?.data?.message || "Invalid trainer credentials.";
+    setGeneralError(errorMsg);
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <BackgroundImageWrapper image={loginpic}>
       {toastMessage && (

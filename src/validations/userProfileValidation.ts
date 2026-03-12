@@ -1,6 +1,6 @@
 import {type UpdateUserProfileDTO } from "../types/userType";
+import { type ValidationErrors } from "./ValidationErrors";
 
-export type ValidationErrors<T> = Partial<Record<keyof T, string>>;
 
 export const validateUserProfile = (
   data: UpdateUserProfileDTO

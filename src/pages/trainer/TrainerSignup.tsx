@@ -1,15 +1,11 @@
 
 import React, { useEffect, useState,  type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signupValidate } from "../../validations/signupValidate";
 import { setEmail, setRole } from "../../redux/slices/otpSlice";
 import { useAppDispatch } from "../../redux/hooks";
-import { PublicService } from "../../services/public/public.service";
-import { trainerAuthService } from "../../services/trainer/trainer.Auth.service";
-
+import { ProgramService } from "../../services/programs-service";
 import signuppic from "../../assets/trainer-signup pic.webp";
 import LogoHeader from "../../assets/logo.jpg";
-
 import TextInput from "../../components/TextInput";
 import PasswordInput from "../../components/PasswordInput";
 import SubmitButton from "../../components/SubmitButton";
@@ -17,26 +13,31 @@ import SelectField from "../../components/SelectField";
 import CheckboxGroup from "../../components/CheckboxGroup";
 import RadioGroup from "../../components/RadioGroup";
 import BackgroundImageWrapper from "../../components/BackgroundImage";
+import { AuthService } from "../../services/auth-service";
+import { type TrainerSignupDTO } from "../../types/trainerType";
+import { trainerSignupValidate } from "../../validations/trainerSignupValidate";
+import type { ValidationErrors } from "../../validations/ValidationErrors";
+import type { DiscoveryProgram } from "../../types/programType";
 
 const languageOptions = import.meta.env.VITE_LANGUAGES?.split(",").map((lang: string) => ({ label: lang.trim(), value: lang.trim() })) || [];
 const experienceOptions = import.meta.env.VITE_EXPERIENCE?.split(",") || [];
 
 const TrainerSignup: React.FC = () => {
 
-  const [email, setEmailVal] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [gender, setGender] = useState("");
-  const [experience, setExperience] = useState("");
-  const [specializations, setSpecializations] = useState<string[]>([]);
-  const [specializationOptions, setSpecializationOptions] = useState<any[]>([]);
+  const [email, setEmailVal] = useState<string>("");
+  const [name, setName] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirm, setConfirm] = useState<string>("");
+  const [gender, setGender] = useState<string>('');
+  const [experience, setExperience] = useState<string>("");
+  const [programs, setPrograms] = useState<string[]>([]);
+  const [programOptions, setProgramOptions] = useState<DiscoveryProgram[]>([]);
   const [languages, setLanguages] = useState<string[]>([]);
   const [certificate, setCertificate] = useState<File>();
-  const [errors, setErrors] = useState<any>({});
-  const [loading, setLoading] = useState(false);
-  const [pricePerSession, setPricePerSession] = useState("");
-  const [genericErrors, setGenericErrors] = useState('');
+  const [errors, setErrors] = useState<ValidationErrors<TrainerSignupDTO>>({});
+  const [loading, setLoading] = useState<boolean>(false);
+  const [pricePerSession, setPricePerSession] = useState<string>('500');
+  const [genericErrors, setGenericErrors] = useState<string>('');
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -45,9 +46,12 @@ const TrainerSignup: React.FC = () => {
     document.title = "FitTribe | Join as Trainer";
     const fetchServices = async () => {
       try {
-        const response = await PublicService.fetchPublicServices();
-        setSpecializationOptions(response.data);
-      } catch (error) { console.error(error); }
+        const response = await ProgramService.DiscoverPrograms();
+        console.log(response)
+        setProgramOptions(response.program.data);
+      } catch (error) { 
+        console.error(error);
+       }
     };
     fetchServices();
   }, []);
@@ -57,8 +61,21 @@ const TrainerSignup: React.FC = () => {
     setGenericErrors('');
     setErrors({});
     
-    const newErrors = signupValidate({ name, email, password, confirm, gender, experience, certificate, specializations });
-    if (Object.keys(newErrors).length > 0) {
+const validationData: TrainerSignupDTO = { 
+    name, 
+    email, 
+    password, 
+    confirm, 
+    gender, 
+    experience: Number(experience),
+    certificate, 
+    programs,
+    languages,
+    pricePerSession: Number(pricePerSession) 
+  };
+console.log(programs)
+  const newErrors = trainerSignupValidate(validationData);   
+  if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
@@ -71,12 +88,11 @@ const TrainerSignup: React.FC = () => {
     formData.append("gender", gender);
     formData.append("experience", experience);
     formData.append("pricePerSession", pricePerSession);
-    specializations.forEach((spec) => formData.append("services[]", spec));
+    programs.forEach((spec) => formData.append("programs[]", spec));
     languages.forEach((lang) => formData.append("languages[]", lang));
     if (certificate) formData.append("certificate", certificate);
-
     try {
-      const response = await trainerAuthService.createTrainer(formData);
+      const response = await AuthService.RegisterTrainer(formData);
       if (response.success) {
         dispatch(setEmail(email));
         dispatch(setRole("trainer"));
@@ -149,16 +165,16 @@ const TrainerSignup: React.FC = () => {
               </div>
 
               <div className="mb-6">
-                <TextInput name="pricePerSession" label="Price Per Session (₹)" type="number" value={pricePerSession} onChange={(e) => setPricePerSession(e.target.value)} placeholder="Eg: 800" error={errors.pricePerSession} />
+                <TextInput name="pricePerSession" label="Price Per Session (₹)" type="string" value={pricePerSession} onChange={(e) => setPricePerSession(e.target.value)} placeholder="Eg: 800" error={errors.pricePerSession} />
               </div>
 
               <div className="space-y-6">
                 <CheckboxGroup 
-                  label="Specializations" 
-                  options={specializationOptions.map(s => ({ label: s.name, value: s.serviceId }))} 
-                  selected={specializations} 
-                  onChange={(id) => setSpecializations(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])} 
-                  error={errors.specializations} 
+                  label="Programs" 
+                  options={programOptions.map(s => ({ label: s.name, value: s.programId }))} 
+                  selected={programs} 
+                  onChange={(id) => setPrograms(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])} 
+                  error={errors.programs} 
                 />
                 
                 <CheckboxGroup 

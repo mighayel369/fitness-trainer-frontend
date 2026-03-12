@@ -6,41 +6,42 @@ import {
 import { DetailCard } from './../../components/DetailCard';
 import AdminTopBar from "../../layout/AdminTopBar";
 import AdminSideBar from "../../layout/AdminSideBar";
-import { adminTrainerService } from "../../services/admin/admin.Trainer.service";
 import Modal from "../../components/Modal";
 import Toast from "../../components/Toast";
 import Loading from "../../components/Loading";
 import NotFound from "../../components/NotFound";
 import { type AdminTrainerDetails } from "../../types/trainerType";
 import SubmitButton from "../../components/SubmitButton";
-
-const DEFAULT_IMAGE = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-
+import DEFAULT_IMAGE from '../../assets/default image.png'
+import { TrainerService } from "../../services/trainer-service";
 const TrainerDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [trainer, setTrainer] = useState<AdminTrainerDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
 
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState<boolean>(false);
+  const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
   const [verifyAction, setVerifyAction] = useState<"accept" | "decline">("accept");
   const [toast, setToast] = useState<{ message: string, type: "success" | "error" } | null>(null);
 
   useEffect(() => {
-    document.title = "FitTribe | Trainer Details";
+    document.title = "FitTribe | Trainer Profile";
     if (id) fetchTrainer();
   }, [id]);
 
   const fetchTrainer = async () => {
     try {
       setLoading(true);
-      const response = await adminTrainerService.fetchTrainerById(id!);
+      const response = await TrainerService.GetTrainerDetails(id!);
       setTrainer(response.trainer);
-    } catch (error) {
-      console.error("Failed to fetch trainer", error);
+    } catch (error:any) {
+      setToast({ 
+        message: error.response?.data?.message || "Verification failed", 
+        type: "error" 
+      })
     } finally {
       setLoading(false);
     }
@@ -57,7 +58,7 @@ const TrainerDetails = () => {
     setShowVerifyModal(false);
 
     try {
-      const result = await adminTrainerService.updateVerification(id, verifyAction, reason);
+      const result = await TrainerService.HandleTrainerApproval(id, verifyAction, reason);
       if (result.success) {
         setTrainer((prev) => prev ? { ...prev, verified: result.updatedStatus } : null);
         setToast({ message: result.message, type: "success" });
@@ -78,7 +79,7 @@ const TrainerDetails = () => {
     setShowStatusModal(false);
 
     try {
-      const result = await adminTrainerService.updateTrainerStatus(trainer.trainerId, !trainer.status);
+      const result = await TrainerService.BlockUnblockTrainer(trainer.trainerId, !trainer.status);
       if (result.success) {
         setTrainer((prev) => prev ? { ...prev, status: result.newStatus } : null);
         setToast({ message: result.message, type: "success" });
@@ -153,8 +154,8 @@ const TrainerDetails = () => {
           <div className="p-8 grid md:grid-cols-2 gap-6">
             <DetailCard icon={<FaVenusMars />} label="Gender" value={trainer.gender || "Not specified"} />
             <DetailCard icon={<FaAward />} label="Experience" value={`${trainer.experience} Years`} />
-            <DetailCard icon={<FaCheck />} label="Specializations" value={trainer.services?.map(s => s.name).join(", ") || "None"} />
-            <DetailCard icon={<span className="text-lg">₹</span>} label="Price/Session" value={trainer.pricePerSession ? `₹${trainer.pricePerSession}` : "Free"} />
+            <DetailCard icon={<FaCheck />} label="Programs" value={trainer.programs?.map(s => s.name).join(", ") || "None"} />
+            <DetailCard icon={<span className="text-lg">₹</span>} label="Price/Session" value={trainer.pricePerSession ? `₹${trainer.pricePerSession}` : "Not Added"} />
             <DetailCard icon={<FaLanguage />} label="Languages" value={trainer.languages?.join(", ") || "English"} />
             <DetailCard icon={<FaClock />} label="Joined On" value={new Date(trainer.joined).toLocaleDateString()} />
 

@@ -1,7 +1,7 @@
 import AdminTopBar from "../../layout/AdminTopBar";
 import AdminSideBar from "../../layout/AdminSideBar";
 import { useEffect, useState } from "react";
-import { adminTrainerService } from "../../services/admin/admin.Trainer.service";
+import { TrainerService } from "../../services/trainer-service";
 import { useNavigate } from "react-router-dom";
 import GenericTable from "../../components/GenericTable";
 import Pagination from "../../components/Pagination";
@@ -9,20 +9,20 @@ import SearchInput from "../../components/SearchInput";
 import { type PendingTrainer } from "../../types/trainerType";
 
 const VerifyTrainer = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [trainers, setTrainers] = useState<PendingTrainer[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [search, setSearch] = useState("");
+  const [page, setPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [search, setSearch] = useState<string>("");
 
   const navigate = useNavigate();
   useEffect(() => {
-    document.title = "FitTribe | Verify Trainer";
+    document.title = "FitTribe | Trainer Verification";
   }, []);
 const fetchTrainers = async () => {
   setLoading(true);
   try {
-    const response = await adminTrainerService.fetchPendingTrainers(page, search);
+    const response = await TrainerService.GetPendingTrainers(page, search);
 
     if (response.success) {
       setTrainers(response.data);
@@ -49,7 +49,7 @@ const fetchTrainers = async () => {
       <AdminSideBar />
       <main className="ml-64 mt-16 p-6 bg-gray-100 min-h-screen relative">
         <div className="flex justify-between mb-6">
-          <h2 className="text-3xl font-bold text-gray-800">Verify Trainers</h2>
+          <h2 className="text-3xl font-bold text-gray-800">Trainer Verification</h2>
           <SearchInput
             value={search}
             onChange={(val) => {
@@ -73,9 +73,9 @@ const fetchTrainers = async () => {
                 render: (t) => t.gender ?? "NA",
               },
               {
-                 header: "Services",
-                 accessor: "services",
-                 render: (t) => t.services.length ? t.services.join(", ") : "NA",
+                 header: "Programs",
+                 accessor: "programs",
+                 render: (t) => t.programs.length ? t.programs.join(", ") : "NA",
                 },
               {
                   header: "Price",

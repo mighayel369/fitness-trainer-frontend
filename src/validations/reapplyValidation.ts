@@ -1,6 +1,5 @@
 import { type ReapplyTrainerDTO } from "../types/trainerType";
-
-export type ValidationErrors<T> = Partial<Record<keyof T, string>>;
+import { type ValidationErrors } from "./ValidationErrors";
 
 export const reapplyValidation = (data: ReapplyTrainerDTO): ValidationErrors<ReapplyTrainerDTO> => {
   const newErrors: ValidationErrors<ReapplyTrainerDTO> = {};
@@ -17,8 +16,8 @@ export const reapplyValidation = (data: ReapplyTrainerDTO): ValidationErrors<Rea
     newErrors.experience = "Experience level is required";
   }
 
-  if (!data.services || data.services.length === 0) {
-    newErrors.services = "Please select at least one specialization";
+  if (!data.programs || data.programs.length === 0) {
+    newErrors.programs = "Please select at least one program";
   }
 
   if (!data.languages || data.languages.length === 0) {

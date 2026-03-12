@@ -10,7 +10,7 @@ import Modal from "../../components/Modal";
 import GenericTable from "../../components/GenericTable";
 import SearchInput from "../../components/SearchInput";
 import Pagination from "../../components/Pagination";
-import { adminUserService } from "../../services/admin/admin.User.service";
+import { UserService } from "../../services/user-service";
 
 type User = {
   userId: string;
@@ -32,17 +32,19 @@ const UserList: React.FC = () => {
 
   const navigate = useNavigate();
 useEffect(() => {
-  document.title = "FitConnect | User List";
+  document.title = "FitTribe | Users";
 }, []);
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await adminUserService.fetchUsers(page, search);
+      const res = await UserService.FetchUsers(page, search);
       setUsers(res.data || []);
       setTotalPages(res.total || 1);
-    } catch (err) {
-      console.error("Failed to fetch users", err);
-    } finally {
+    } catch (err:any) {
+     const message = err.response?.data?.message
+    setToastType("error");
+    setToastMessage(message||"Server error. Reverting changes.");    
+  } finally {
       setLoading(false);
     }
   };
@@ -66,7 +68,7 @@ const handleConfirmAction = async () => {
   const targetId = selectedUser.userId;
   const targetStatus = !selectedUser.status;
   try {
-    let res=await adminUserService.updateUserStatus(targetId, targetStatus);
+    let res=await UserService.UpdateUserStatus(targetId, targetStatus);
       setUsers(prev => prev.map(u => u.userId === targetId ? { ...u, status: targetStatus } : u));
   setShowModal(false);
     setToastType("success");

@@ -4,9 +4,10 @@ import React, { useState, useEffect } from "react";
 import { FaUser, FaPhone, FaHome,  FaVenusMars, FaBirthdayCake, FaArrowLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { validateUserProfile } from "../../validations/userProfileValidation";
-import { userProfileService } from "../../services/user/user.Profile.service";
-import { type ValidationErrors } from "../../validations/userProfileValidation";
+import {type ValidationErrors } from "../../validations/ValidationErrors";
 import {type UpdateUserProfileDTO } from "../../types/userType";
+import { UserService } from "../../services/user-service";
+import Toast from "../../components/Toast";
 const EditProfile: React.FC = () => {
   const navigate = useNavigate();
 
@@ -21,13 +22,14 @@ const EditProfile: React.FC = () => {
   });
 
   const [errors, setErrors] = useState<ValidationErrors<UpdateUserProfileDTO>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
     document.title = "FitTribe | Edit Profile";
     const fetchUserProfile = async () => {
       try {
-        const res = await userProfileService.fetchUserProfile();
+        const res = await UserService.GetFullProfile();
         setFormData(res.userData);
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -56,12 +58,17 @@ const EditProfile: React.FC = () => {
     if (Object.keys(validationErrors).length > 0) return;
 
     try {
-      const res = await userProfileService.updateUserProfile(formData);
+      const res = await UserService.UpdateProfile(formData);
       if (res.success) {
-        navigate('/profile');
+        navigate('/profile',{
+          state:{
+            message:res.message
+          }
+        });
       }
-    } catch (err) {
-      console.error("Error updating profile:", err);
+    } catch (err:any) {
+      let errMesg=err.response?.data?.message
+      setToast({message:errMesg,type:'error'})
     }
   };
 
@@ -71,6 +78,13 @@ const EditProfile: React.FC = () => {
     <>
       <UserNavBar />
       <main className="min-h-screen bg-[#F8FAFC] pt-[120px] pb-12 px-4">
+              {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <button 
@@ -110,6 +124,7 @@ const EditProfile: React.FC = () => {
                     <FaPhone className="text-gray-400 mr-3" />
                     <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="w-full py-3 outline-none text-sm font-semibold" />
                   </div>
+                  {errors.phone && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1 uppercase">{errors.phone}</p>}
                 </div>
 
             
@@ -119,6 +134,7 @@ const EditProfile: React.FC = () => {
                     <FaBirthdayCake className="text-gray-400 mr-3" />
                     <input type="number" name="age" value={formData.age ?? ""} onChange={handleChange} className="w-full py-3 outline-none text-sm font-semibold" />
                   </div>
+                  {errors.age && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1 uppercase">{errors.age}</p>}
                 </div>
 
             
@@ -133,6 +149,7 @@ const EditProfile: React.FC = () => {
                       <option value="other">Other</option>
                     </select>
                   </div>
+                  {errors.gender && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1 uppercase">{errors.gender}</p>}
                 </div>
               </div>
 
@@ -143,6 +160,7 @@ const EditProfile: React.FC = () => {
                   <FaHome className="text-gray-400 mt-1 mr-3" />
                   <textarea name="address" value={formData.address} onChange={handleChange} rows={3} className="w-full outline-none text-sm font-semibold resize-none" />
                 </div>
+                {errors.address && <p className="text-red-500 text-[10px] font-bold mt-1 ml-1 uppercase">{errors.address}</p>}
               </div>
 
               <div className="pt-6">

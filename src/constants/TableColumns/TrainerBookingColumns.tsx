@@ -1,4 +1,5 @@
-import {type TableActions } from "../../pages/trainer/TrainerBookings";
+import { type TrainerBookingColumnActions, type ColumnDefinition } from "../../types/table-types";
+
 const ViewButton = ({ id, onClick }: { id: string; onClick: (id: string) => void }) => (
   <button className="px-4 py-1 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors tracking-wider" onClick={()=>onClick(id)}>
     View
@@ -14,7 +15,7 @@ const statusStyles: Record<string, string> = {
   rejected:"bg-red-500 text-white border-grey-200"
 };
 
-export const allBookingsColumns = (actions:TableActions)=>[
+export const allBookingsColumns = (onView: (id: string) => void):ColumnDefinition<any>[]=>[
   {
     header: "Client Name",
     accessor: "clientName",
@@ -26,11 +27,11 @@ export const allBookingsColumns = (actions:TableActions)=>[
     )
   },
   {
-    header: "Service",
-    accessor: "service",
+    header: "Program",
+    accessor: "program",
     render: (b: any) => (
       <span className="text-xs font-bold text-indigo-600 uppercase tracking-tighter bg-indigo-50 px-2 py-1 rounded">
-        {b.bookedService}
+        {b.bookedProgram}
       </span>
     )
   },
@@ -48,7 +49,7 @@ export const allBookingsColumns = (actions:TableActions)=>[
     header: "Status",
     accessor: "status",
     render: (b: any) => {
-      const style = statusStyles[b.bookingtatus] || "bg-gray-50 text-gray-600 border-gray-200";
+      const style = statusStyles[b.bookingStatus] || "bg-gray-50 text-gray-600 border-gray-200";
       return (
         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border tracking-wider ${style}`}>
           {b.bookingStatus}
@@ -59,11 +60,11 @@ export const allBookingsColumns = (actions:TableActions)=>[
   {
     header: "Details",
     accessor: "",
-    render: (b:any) => <ViewButton id={b.bookingId} onClick={actions.onView}/>
+    render: (b: any) => <ViewButton id={b.bookingId} onClick={onView} />
   }
 ];
 
-export const pendingBookingsColumns = (actions:TableActions) => [
+export const pendingBookingsColumns = (actions:TrainerBookingColumnActions):ColumnDefinition<any>[] => [
   {
     header: "Client Name",
     accessor: "clientName",
@@ -76,10 +77,10 @@ export const pendingBookingsColumns = (actions:TableActions) => [
   },
   {
     header: "Booking Request",
-    accessor: "service",
+    accessor: "program",
     render: (b: any) => (
       <div className="text-sm">
-        <p className="font-semibold text-amber-700">{b.bookedService}</p>
+        <p className="font-semibold text-amber-700">{b.bookedProgram}</p>
         <p className="text-xs text-gray-500">{new Date(b.bookedDate).toLocaleDateString()} | {b.timeSlot}</p>
       </div>
     )
@@ -97,21 +98,20 @@ export const pendingBookingsColumns = (actions:TableActions) => [
   {
     header: "Details",
     accessor: "",
-    render: (b:any) => <ViewButton id={b.bookingId} onClick={actions.onView}/>
-  },
+    render: (b: any) => <ViewButton id={b.bookingId} onClick={actions.onView} />  },
   {
     header: "Decision",
     accessor: "",
     render: (b: any) => (
       <div className="flex gap-2">
         <button 
-          onClick={() => actions.onDecision(b.bookingId, 'approve',"pending")}
-          className="px-4 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded hover:bg-emerald-700 transition uppercase shadow-sm"
+          onClick={() => actions.onAction(b.bookingId, 'accept', 'booking')}         
+         className="px-4 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded hover:bg-emerald-700 transition uppercase shadow-sm"
         >
           Accept
         </button>
         <button 
-          onClick={() => actions.onDecision(b.bookingId, 'reject',"pending")}
+          onClick={() => actions.onAction(b.bookingId, 'reject', 'booking')}
           className="px-4 py-1.5 bg-white text-rose-500 border border-rose-200 text-[10px] font-bold rounded hover:bg-rose-50 transition uppercase"
         >
           Decline
@@ -121,7 +121,7 @@ export const pendingBookingsColumns = (actions:TableActions) => [
   }
 ];
 
-export const rescheduleColumns = (actions:TableActions) => [
+export const rescheduleColumns = (actions:TrainerBookingColumnActions):ColumnDefinition<any>[] => [
   {
     header: "Client Name",
     accessor: "clientName",
@@ -152,21 +152,20 @@ export const rescheduleColumns = (actions:TableActions) => [
   {
     header: "Action",
     accessor: "",
-    render: (b:any) => <ViewButton id={b.bookingId} onClick={actions.onView}/>
-  },
+    render: (b: any) => <ViewButton id={b.bookingId} onClick={actions.onView} />  },
   {
     header: "Decision",
     accessor: "",
     render: (b: any) => (
       <div className="flex gap-2">
         <button 
-          onClick={() => actions.onDecision(b.bookingId, 'approve','reschedule')} 
-          className="px-5 py-2 bg-emerald-500 text-white rounded text-[10px] font-black uppercase hover:bg-emerald-600 transition shadow-sm"
+           onClick={() => actions.onAction(b.bookingId, 'accept', 'reschedule')}         
+           className="px-5 py-2 bg-emerald-500 text-white rounded text-[10px] font-black uppercase hover:bg-emerald-600 transition shadow-sm"
         >
           Approve
         </button>
         <button 
-          onClick={() => actions.onDecision(b.bookingId, 'reject','reschedule')} 
+           onClick={() => actions.onAction(b.bookingId, 'reject', 'reschedule')}         
           className="px-5 py-2 bg-rose-500 text-white rounded text-[10px] font-black uppercase hover:bg-rose-600 transition shadow-sm"
         >
           Reject

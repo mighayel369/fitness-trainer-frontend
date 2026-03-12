@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { userAuthService } from "../../services/user/user.Auth.service";
+
 
 import backgroundImage from '../../assets/forgot-password.webp';
 import LogoHeader from '../../assets/logo.jpg';
@@ -9,6 +9,7 @@ import TextInput from "../../components/TextInput";
 import SubmitButton from "../../components/SubmitButton";
 import BackgroundImageWrapper from '../../components/BackgroundImage';
 import { FaArrowLeft, FaEnvelopeOpenText } from 'react-icons/fa';
+import { AuthService } from '../../services/auth-service';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -32,7 +33,7 @@ const ForgotPassword: React.FC = () => {
 
     setLoading(true);
     try {
-      const data = await userAuthService.sendForgotPasswordLink(email);
+      const data = await AuthService.ForgotPassword(email);
       if (data.success) {
         setMsg(data.message||'Check your inbox! A reset link is on its way.');
       }

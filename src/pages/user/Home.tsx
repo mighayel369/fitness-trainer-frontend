@@ -4,18 +4,18 @@ import homeimage from "../../assets/homepage1.webp";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowRight } from "react-icons/fa";
-import { PublicService } from "../../services/public/public.service";
-import { type Service } from "../../types/serviceType";
+import { type Program } from "../../types/programType";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useAppSelector } from "../../redux/hooks";
 import { useLocation } from 'react-router-dom';
 import Toast from "../../components/Toast";
+import { ProgramService } from "../../services/programs-service";
 const Home: React.FC = () => {
   const navigate = useNavigate();
-  const [services, setServices] = useState<Service[]>([])
+  const [programs, setPrograms] = useState<Program[]>([])
   const ITEMS_PER_VIEW = 3;
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const isLogged=useAppSelector(state=>state.auth.accessToken)
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const isLogged=useAppSelector(state=> state.auth.accessToken)
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   let location=useLocation()
   useEffect(() => {
@@ -24,21 +24,22 @@ const Home: React.FC = () => {
   
         window.history.replaceState({}, document.title);
       }
+      document.title='FitTribe | Home'
     }, [location]);
 
   useEffect(() => {
     const fetchServices = async () => {
-      let response = await PublicService.fetchPublicServices();
-      setServices(response.data ?? [])
+      let response = await ProgramService.DiscoverPrograms();
+      setPrograms(response.program.data ?? [])
     }
     fetchServices()
   }, [])
-  const visibleServices = services.slice(
+  const visiblePrograms = programs.slice(
     currentIndex,
     currentIndex + ITEMS_PER_VIEW
   );
   const handleNext = () => {
-    if (currentIndex + ITEMS_PER_VIEW < services.length) {
+    if (currentIndex + ITEMS_PER_VIEW < programs.length) {
       setCurrentIndex(prev => prev + ITEMS_PER_VIEW);
     }
   };
@@ -146,22 +147,22 @@ const Home: React.FC = () => {
           </button>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-            {visibleServices.map((service) => (
+            {visiblePrograms.map((program) => (
               <div
-                key={service.serviceId}
+                key={program.programId}
                 className="group cursor-pointer overflow-hidden rounded-2xl bg-gray-50 border shadow hover:shadow-xl transition"
               >
                 <div className="h-60 overflow-hidden">
                   <img
-                    src={service.servicePic}
-                    alt={service.name}
+                    src={program.programPic}
+                    alt={program.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition"
                   />
                 </div>
 
                 <div className="p-6 text-center">
-                  <h3 className="text-xl font-bold">{service.name}</h3>
-                  <p className="text-sm text-gray-500">{service.description}</p>
+                  <h3 className="text-xl font-bold">{program.name}</h3>
+                  <p className="text-sm text-gray-500">{program.description}</p>
                   <button
                     onClick={() => navigate("/trainers")}
                     className="mt-4 text-red-600 font-bold text-sm hover:underline"
@@ -174,9 +175,9 @@ const Home: React.FC = () => {
           </div>
           <button
             onClick={handleNext}
-            disabled={currentIndex + ITEMS_PER_VIEW >= services.length}
+            disabled={currentIndex + ITEMS_PER_VIEW >= programs.length}
             className={`absolute -right-6 z-10 p-3 rounded-full bg-white shadow
-        ${currentIndex + ITEMS_PER_VIEW >= services.length
+        ${currentIndex + ITEMS_PER_VIEW >= programs.length
                 ? "opacity-30 cursor-not-allowed"
                 : "hover:bg-gray-100"
               }`}

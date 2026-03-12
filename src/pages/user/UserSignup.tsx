@@ -3,31 +3,27 @@ import React, { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../redux/hooks';
 import { setEmail, setRole } from '../../redux/slices/otpSlice';
-
 import signuppic from '../../assets/signuppic.webp';
 import LogoHeader from '../../assets/logo.jpg';
-import { signupValidate } from '../../validations/signupValidate';
-import { userAuthService } from '../../services/user/user.Auth.service';
+
 
 import TextInput from '../../components/TextInput';
 import PasswordInput from '../../components/PasswordInput';
 import SubmitButton from '../../components/SubmitButton';
 import GoogleAuthButton from '../../components/GoogleAuthButton';
 import BackgroundImageWrapper from '../../components/BackgroundImage';
+import { AuthService } from '../../services/auth-service';
+import type { ValidationErrors } from '../../validations/ValidationErrors';
+import type { UserSignupDTO } from '../../types/userType';
+import { userSignupValidation } from '../../validations/userSignupValidation';
 
-interface Errors {
-  email?: string;
-  name?: string;
-  password?: string;
-  confirm?: string;
-}
 
 const UserSignup: React.FC = () => {
   const [email, setEmailVal] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [errors, setErrors] = useState<Errors>({});
+  const [errors, setErrors] = useState<ValidationErrors<UserSignupDTO>>({});
   const [loading, setLoading] = useState(false);
   const [genericErrors, setGenericErrors] = useState('');
 
@@ -43,7 +39,8 @@ const UserSignup: React.FC = () => {
     setGenericErrors('');
     setErrors({});
 
-    const validationErrors: Errors = signupValidate({ name, email, password, confirm });
+    const validationData: UserSignupDTO = { name, email, password, confirm };
+    const validationErrors = userSignupValidation(validationData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -51,7 +48,7 @@ const UserSignup: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await userAuthService.signup(name, email, password);
+      const response = await AuthService.RegisterUser(name, email, password);
 
       if (response.success) {
         dispatch(setEmail(email));
@@ -149,7 +146,7 @@ const UserSignup: React.FC = () => {
             <div className="h-[1px] bg-gray-200 flex-1"></div>
           </div>
 
-          <GoogleAuthButton text="Sign up with Google" onClick={() => userAuthService.googleLogin()} />
+          <GoogleAuthButton text="Sign up with Google" onClick={() => AuthService.GoogleLogin()} />
 
           <footer className="mt-8 text-center text-sm text-gray-500">
             Already have an account?{' '}
