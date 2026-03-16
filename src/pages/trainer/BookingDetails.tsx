@@ -75,6 +75,8 @@ const handleConfirmAction = async (reason?: string) => {
     }
 };
 
+
+
     const fetchBookingDetails = async () => {
         if (!id) return;
         try {

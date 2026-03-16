@@ -87,5 +87,9 @@ DASHBOARD: {
     ADMIN_INSIGHTS: '/dashboard/admin',
     TRAINER_METRICS: '/dashboard/trainer/metrics',
     TRAINER_AGENDA: '/dashboard/trainer/agenda'
-  }
+  },
+LEAVE:{
+  APPLY_LEAVE:'/leaves/apply',
+  GET_LEAVE_REQUEST:'/leaves/leave-requests'
+}
 };

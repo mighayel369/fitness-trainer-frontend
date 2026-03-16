@@ -55,11 +55,7 @@ const UserLogin: React.FC = () => {
 
       if (result.success && result.accessToken) {
         dispatch(setAccessToken(result.accessToken));
-        navigate('/',{
-          state:{
-            message:result.message
-          }
-        });
+        navigate(-1)
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Invalid credentials. Please try again.";
